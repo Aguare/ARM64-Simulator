@@ -1,13 +1,10 @@
 Init
-  = _ Body _
-  
-Body
-  = dot globalToken _ Label _ Section* _
+  = _ Section* _
 
 Section
-  = dot sectionToken _ dot textToken _ StatementBlock* _
-  / dot sectionToken _ dot dataToken _ VariableBlock* _
-  / dot sectionToken _ dot roDataToken _ ReadOnlyBlock* _
+  = dot globalToken _ Label _ StatementBlock* _
+  / dot (dataToken / bssToken) _ VariableBlock* _
+  / dot roDataToken _ ReadOnlyBlock* _
 
 StatementBlock
   = Label _ colon _ Statement* _
@@ -30,6 +27,7 @@ Instruction
   / msrToken
   / pspToken
   / cmpToken
+  / bneToken
   / beqToken
   / bgtToken
   / bltToken
@@ -48,13 +46,14 @@ Instruction
   / lsrToken
   
 VariableBlock
-  = Variable colon _ dot (wordToken / asciiToken / ascizToken) _ Value _
+  = Variable colon _ dot (wordToken / asciiToken / ascizToken / spaceToken) _ Value _
  
 ReadOnlyBlock
   = Label colon _ dot ( asciiToken / ascizToken / stringToken) _ stringValue _
   
 Value
-  = HexNumber
+  = Character
+  / HexNumber
   / Record
   / Number
   / Label
@@ -64,10 +63,12 @@ Value
 Whitespace
   = [ \t\n\r]+
 
-Comment = ( "//" / ";" ) (![\r\n] .)*
+SingleLineComment = "//" (![\r\n] .)*
+
+MultiLineComment = "/*" (!"*/" .)* "*/"
 
 _
-  = (Whitespace / Comment )*
+  = (Whitespace / SingleLineComment / MultiLineComment )*
 
 // TOKENS
 colon		= ":"
@@ -84,14 +85,14 @@ fmovToken	= "fmov"i
 retToken	= "ret"i
 svcToken	= "svc"i
 globalToken	= "global"i
-sectionToken	= "section"i
 dataToken	= "data"i
 roDataToken	= "rodata"i
-textToken	= "text"i
+bssToken	= "bss"i
 wordToken	= "word"i
 asciiToken	= "ascii"i
 ascizToken	= "asciz"i
 stringToken	= "string"i
+spaceToken	= "space"i
 mrsToken	= "mrs"i
 pspToken	= "psp"i
 msrToken	= "msr"i
@@ -115,9 +116,10 @@ lslToken	= "lsl"i
 lsrToken	= "lsr"i
 
 Label = [_a-zA-Z]+
-Number = "#" [0-9]+ (dot [0-9]+)?
+Character = "#" "'" [a-zA-Z] "'"
+Number = "#"?  [0-9]+ (dot [0-9]+)?
 HexNumber = "#" [0-9a-f]i+
-Record = (( "x"i / "d"i ) [0-9]+ / "[" ( "x" / "d" ) [0-9]+ "]")
+Record = (( "x"i / "w"i ) [0-9]+ / "[" ( "x" / "d" ) [0-9]+ "]")
 stringValue = "\"" [^\"]* "\""
 Variable = [_a-zA-Z]+
 CallVariable = "=" [_a-zA-Z]+
