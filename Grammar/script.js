@@ -55,6 +55,8 @@ const saveFile = async (fileName, extension, editor) => {
     }
 }
 
+
+
 const download = (name, content) => {
     let blob = new Blob([content], {type: 'text/plain;charset=utf-8'})
     let link = document.getElementById('download');
@@ -67,6 +69,26 @@ const cleanEditor = (editor) => {
     editor.setValue("");
 }
 
+
+function isLexicalError(e) {
+    const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+    const validInteger = /^[0-9]+$/;
+    const validRegister = /^[a-zA-Z][0-9]+$/;
+    const validCharacter = /^[a-zA-Z0-9_$,\[\]#"]$/;
+    if (e.found) {
+      if (!validIdentifier.test(e.found) && 
+          !validInteger.test(e.found) &&
+          !validRegister.test(e.found) &&
+          !validCharacter.test(e.found)) {
+        return true; // Error léxico
+      }
+    }
+    return false; // Error sintáctico
+}
+
+
+
+
 const analysis = async () => {
     const text = Arm64Editor.getValue();
     try {
@@ -74,7 +96,19 @@ const analysis = async () => {
         consoleResult.setValue("ENTRADA VALIDA, Su JSON resultante es: \n"+JSON.stringify(resultado))
         //consoleResult.setValue(resultado.toString()); //JSON.stringify(PEG.parse(x))
     } catch (error) {
-        consoleResult.setValue("Entrada incorrecta, Revise su Codigo \n"+ error.message);
+        console.log(FASE1)
+        if (error instanceof FASE1.SyntaxError) {
+            if (isLexicalError(error)) {
+                consoleResult.setValue('ERROR LÉXICO!, Carácter no reconocido: ' + error.message);
+                console.log(error.message)
+            } else {
+                consoleResult.setValue('ERROR SINTÁCTICO: ' + error.message);
+                console.log(error.message)
+            }
+        } else {
+            console.error('Error desconocido:', error);
+        }
+        //consoleResult.setValue("Entrada incorrecta, Revise su Codigo \n"+ error.message);
     }
 }
 
