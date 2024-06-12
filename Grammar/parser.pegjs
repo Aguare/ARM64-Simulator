@@ -74,7 +74,7 @@ Whitespace
 
 SingleLineComment = "//" (![\r\n] .)*
 
-MultiLineComment = "/*" (!"*/" .)* "*/"
+MultiLineComment = "/" (!"/" .)* "*/"
 
 _
   = (Whitespace / SingleLineComment / MultiLineComment )*
@@ -86,4 +86,4 @@ HexNumber = "#" [0-9a-f]i+
 Record = ( "x"i / "w"i ) [0-9]+
 stringValue = "\"" [^\"]* "\""
 Variable = [_a-zA-Z]+
-CallVariable = "=" [_a-zA-Z]+
+CallVariable = "=" [_a-zA-Z]+
