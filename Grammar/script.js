@@ -10,8 +10,9 @@ function editor(id, language, lineNumbers = true, readOnly = false, styleActiveL
         lineNumbers: true,
         styleActivateLine: true,
         matchBrackets: true,
-        theme: "moxer",
-        mode: "text/x-rustsrc"
+        theme: "monokai",
+        mode: language,
+        readOnly: readOnly
     });
 }
 
@@ -55,8 +56,6 @@ const saveFile = async (fileName, extension, editor) => {
     }
 }
 
-
-
 const download = (name, content) => {
     let blob = new Blob([content], {type: 'text/plain;charset=utf-8'})
     let link = document.getElementById('download');
@@ -65,10 +64,9 @@ const download = (name, content) => {
     link.click()
 }
 
-const cleanEditor = (editor) => {
-    editor.setValue("");
+const cleanEditors = (...editors) => {
+    editors.forEach(editor => editor.setValue(""));
 }
-
 
 function isLexicalError(e) {
     const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
@@ -85,9 +83,6 @@ function isLexicalError(e) {
     }
     return false; // Error sintáctico
 }
-
-
-
 
 const analysis = async () => {
     const text = Arm64Editor.getValue();
@@ -132,6 +127,5 @@ const btnOpen = document.getElementById('btn__open'),
 
 btnOpen.addEventListener('click', () => openFile(Arm64Editor));
 btnSave.addEventListener('click', () => saveFile("file", "rs", Arm64Editor));
-btnClean.addEventListener('click', () => cleanEditor(Arm64Editor));
-// btnShowCst.addEventListener('click', () => localStorage.setItem("dot", dotStringCst));
+btnClean.addEventListener('click', () => cleanEditors(Arm64Editor, consoleResult));
 btnAnalysis.addEventListener('click', () => analysis());
