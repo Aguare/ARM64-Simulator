@@ -40,12 +40,12 @@ const addNewTab = () => {
 
     // Add new editor tab to the navigation
     const newTabNav = document.createElement('li');
-    newTabNav.innerHTML = `<a data-toggle="tab" href="#${newTabId}" role="tab">Tab ${editorCount}</a>`;
+    newTabNav.innerHTML = `<a data-toggle="tab" href="#${newTabId}" role="tab">Tab ${editorCount}</a><span class="close-tab" onclick="closeTab(event, '${newTabId}')">&times;</span>`;
     document.getElementById('tab-nav').appendChild(newTabNav);
 
     // Add new console tab to the navigation
     const newConsoleTabNav = document.createElement('li');
-    newConsoleTabNav.innerHTML = `<a data-toggle="tab" href="#${newConsoleTabId}" role="tab">Console Tab ${editorCount}</a>`;
+    newConsoleTabNav.innerHTML = `<a data-toggle="tab" href="#${newConsoleTabId}" role="tab">Console Tab ${editorCount}</a><span class="close-tab" onclick="closeTab(event, '${newConsoleTabId}')">&times;</span>`;
     document.getElementById('console-tab-nav').appendChild(newConsoleTabNav);
 
     // Add new editor tab content
@@ -75,11 +75,19 @@ const addNewTab = () => {
 };
 
 const activateTab = (tabLink) => {
+    const tabId = tabLink.getAttribute('href').substring(1);
+    const consoleTabId = `console-${tabId}`;
+    
+    // Desactivar todas las tabs y consolas
     document.querySelectorAll('.tab-nav a').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-content > div').forEach(content => content.style.display = 'none');
+    document.querySelectorAll('#console-tab-nav a').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('#console-tab-content > div').forEach(content => content.style.display = 'none');
 
+    // Activar la tab seleccionada y su consola correspondiente
     tabLink.classList.add('active');
-    document.querySelector(tabLink.getAttribute('href')).style.display = 'block';
+    document.querySelector(`#${tabId}`).style.display = 'block';
+    document.querySelector(`#${consoleTabId}`).style.display = 'block';
 };
 
 const activateConsoleTab = (tabLink) => {
@@ -88,6 +96,41 @@ const activateConsoleTab = (tabLink) => {
 
     tabLink.classList.add('active');
     document.querySelector(tabLink.getAttribute('href')).style.display = 'block';
+};
+
+const closeTab = (event, tabId) => {
+    event.stopPropagation();
+
+    // Remove tab from navigation
+    const tabNavItem = document.querySelector(`#tab-nav a[href="#${tabId}"]`).parentElement;
+    tabNavItem.parentElement.removeChild(tabNavItem);
+
+    // Remove tab content
+    const tabContentItem = document.getElementById(tabId);
+    tabContentItem.parentElement.removeChild(tabContentItem);
+
+    // Remove console tab from navigation
+    const consoleTabId = `console-${tabId}`;
+    const consoleTabNavItem = document.querySelector(`#console-tab-nav a[href="#${consoleTabId}"]`).parentElement;
+    consoleTabNavItem.parentElement.removeChild(consoleTabNavItem);
+
+    // Remove console content
+    const consoleTabContentItem = document.getElementById(consoleTabId);
+    consoleTabContentItem.parentElement.removeChild(consoleTabContentItem);
+
+    // Remove editors from the dictionaries
+    delete editors[tabId];
+    delete consoles[consoleTabId];
+
+    // Activate the first tab if available
+    const firstTab = document.querySelector('#tab-nav a');
+    if (firstTab) {
+        activateTab(firstTab);
+    }
+    const firstConsoleTab = document.querySelector('#console-tab-nav a');
+    if (firstConsoleTab) {
+        activateConsoleTab(firstConsoleTab);
+    }
 };
 
 const openFile = async (editor) => {
