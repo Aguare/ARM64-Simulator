@@ -100,6 +100,9 @@
                         <button class="btn" id="btn__save" title="Save File">
                             <i class="fas fa-cloud-download-alt"></i> Save
                         </button>
+                        <button class="btn" id="btn__newTab" title="New Tab">
+                            <i class="fas fa-plus"></i> New Tab
+                        </button>
                     </div>
                     <h3 class="nav-title">Fase 1 - OLC2</h3>
                     <div class="flex items-center">
@@ -111,19 +114,27 @@
                         </button>
                     </div>
                 </nav>
-                <div class="mt-4">
-                    <textarea id="julia__editor" class="CodeMirror"></textarea>
+                <ul class="tab-nav" id="tab-nav">
+                    <li>
+                        <a class="active" data-toggle="tab" href="#tab1" role="tab">Tab 1</a>
+                    </li>
+                </ul>
+                <div class="tab-content" id="tab-content">
+                    <div id="tab1" role="tabpanel">
+                        <textarea id="julia__editor" class="CodeMirror"></textarea>
+                        
+                    </div>
                 </div>
             </div>
             <div class="w-full md:w-1/2 p-4">
-                <ul class="tab-nav">
+                <ul class="tab-nav" id="console-tab-nav">
                     <li>
-                        <a class="active" id="console-tab" data-toggle="tab" href="#console" role="tab">Console</a>
+                        <a class="active" data-toggle="tab" href="#console-tab1" role="tab">Console Tab 1</a>
                     </li>
                 </ul>
-                <div class="tab-content">
-                    <div id="console" role="tabpanel">
-                        <textarea id="console__result" class="CodeMirror"></textarea>
+                <div class="tab-content" id="console-tab-content">
+                    <div id="console-tab1" role="tabpanel">
+                        <textarea id="console__result1" class="CodeMirror"></textarea>
                     </div>
                 </div>
             </div>
@@ -138,10 +149,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/rust/rust.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
       
-        <!-- ============================= PARSER ============================== -->
-        <script src="parser.js"></script>
-        <!-- ============================= SCRIPT ============================== -->
-        <script src="script.js"></script>
+    <!-- ============================= PARSER ============================== -->
+    <script src="parser.js"></script>
+    <!-- ============================= SCRIPT ============================== -->
+    <script src="script.js"></script>
       
 </body>
 </html>
