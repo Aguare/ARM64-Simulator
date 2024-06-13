@@ -234,26 +234,40 @@ const analysis = async () => {
     const activeConsoleTabId = getActiveConsoleTabId();
     const editor = editors[activeTabId];
     const consoleEditor = consoles[activeConsoleTabId];
-    const text = editor.getValue();
-    try {
-        let resultado = FASE1.parse(text);
+    let text = editor.getValue();
+
+    const { cleanText, lexicalErrors } = removeLexicalErrors(text);
+
+    if (lexicalErrors.length > 0) {
         const errorTableBody = document.querySelector('#error-table tbody');
-        errorTableBody.innerHTML = ''; // Clear previous errors
-        consoleEditor.setValue("ENTRADA VALIDA, Su JSON resultante es: \n" + JSON.stringify(resultado));
+        errorTableBody.innerHTML = '';
+        lexicalErrors.forEach(error => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${error.no}</td><td> No se reconoce el símbolo ${error.char}</td><td>${error.line}</td><td>${error.column}</td><td>ERROR LÉXICO</td>`;
+            errorTableBody.appendChild(row);
+        });
+        consoleEditor.setValue('ERROR LÉXICO!, Revisa la tabla de errores para más detalles.');
+    }
+
+    try {
+        let resultado = FASE1.parse(cleanText);
+        consoleEditor.setValue("ENTRADA VÁLIDA, Su JSON resultante es: \n" + JSON.stringify(resultado));
     } catch (error) {
         console.log(FASE1)
         if (error instanceof FASE1.SyntaxError) {
             displayErrors([error]);
+            const errorMessage = `Location: Line ${error.location.start.line}, Column ${error.location.start.column} ${error.message}`;
             if (isLexicalError(error)) {
-                consoleEditor.setValue('ERROR LÉXICO!, Carácter no reconocido: ' + `Location: Line ${error.location.start.line}, Column ${error.location.start.column} ` + error.message);
+                consoleEditor.setValue('ERROR LÉXICO!, Carácter no reconocido: ' + errorMessage);
             } else {
-                consoleEditor.setValue('ERROR SINTÁCTICO: ' + `Location: Line ${error.location.start.line}, Column ${error.location.start.column} ` + error.message);
+                consoleEditor.setValue('ERROR SINTÁCTICO: ' + errorMessage);
             }
         } else {
             console.error('Error desconocido:', error);
         }
     }
 };
+
 /*const analysis = async () => {
     const activeTabId = getActiveTabId();
     const activeConsoleTabId = getActiveConsoleTabId();
@@ -279,6 +293,31 @@ const analysis = async () => {
         }
     }
 };*/
+
+function removeLexicalErrors(text) {
+    const allowedCharacters = /^[a-zA-Z0-9_#\[\]\.\,\:\+\-\*\/\"\' \t\n\r]+$/;
+    let cleanText = '';
+    let lexicalErrors = [];
+    let line = 1;
+    let column = 1;
+
+    for (let i = 0; i < text.length; i++) {
+        let char = text[i];
+        if (allowedCharacters.test(char)) {
+            cleanText += char;
+        } else {
+            lexicalErrors.push({ no: lexicalErrors.length + 1, char, line, column });
+        }
+        if (char === '\n') {
+            line++;
+            column = 1;
+        } else {
+            column++;
+        }
+    }
+
+    return { cleanText, lexicalErrors };
+}
 
 function isLexicalError(e) {
     const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
