@@ -103,3 +103,23 @@ body {
 .tab-pane.active {
     display: block;
 }
+
+.error-container {
+    margin-top: 20px;
+    color: var(--foreground);
+}
+
+#error-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#error-table th, #error-table td {
+    border: 1px solid var(--primary-color);
+    padding: 8px;
+    text-align: left;
+}
+
+#error-table th {
+    background-color: var(--secondary-color);
+}

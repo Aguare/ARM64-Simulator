@@ -212,7 +212,49 @@ btnSave.addEventListener('click', () => saveFile("file", "rs", editors[getActive
 btnClean.addEventListener('click', () => cleanEditors(editors[getActiveTabId()], consoles[getActiveConsoleTabId()]));
 btnAnalysis.addEventListener('click', () => analysis());
 
+
+const displayErrors = (errors) => {
+    const errorTableBody = document.querySelector('#error-table tbody');
+    errorTableBody.innerHTML = ''; // Clear previous errors
+    errors.forEach((error, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${error.message}</td>
+            <td>${error.location.start.line}</td>
+            <td>${error.location.start.column}</td>
+            <td>${isLexicalError(error) ? 'léxico' : 'sintáctico'}</td>
+        `;
+        errorTableBody.appendChild(row);
+    });
+};
+
 const analysis = async () => {
+    const activeTabId = getActiveTabId();
+    const activeConsoleTabId = getActiveConsoleTabId();
+    const editor = editors[activeTabId];
+    const consoleEditor = consoles[activeConsoleTabId];
+    const text = editor.getValue();
+    try {
+        let resultado = FASE1.parse(text);
+        const errorTableBody = document.querySelector('#error-table tbody');
+        errorTableBody.innerHTML = ''; // Clear previous errors
+        consoleEditor.setValue("ENTRADA VALIDA, Su JSON resultante es: \n" + JSON.stringify(resultado));
+    } catch (error) {
+        console.log(FASE1)
+        if (error instanceof FASE1.SyntaxError) {
+            displayErrors([error]);
+            if (isLexicalError(error)) {
+                consoleEditor.setValue('ERROR LÉXICO!, Carácter no reconocido: ' + `Location: Line ${error.location.start.line}, Column ${error.location.start.column} ` + error.message);
+            } else {
+                consoleEditor.setValue('ERROR SINTÁCTICO: ' + `Location: Line ${error.location.start.line}, Column ${error.location.start.column} ` + error.message);
+            }
+        } else {
+            console.error('Error desconocido:', error);
+        }
+    }
+};
+/*const analysis = async () => {
     const activeTabId = getActiveTabId();
     const activeConsoleTabId = getActiveConsoleTabId();
     const editor = editors[activeTabId];
@@ -225,17 +267,18 @@ const analysis = async () => {
         console.log(FASE1)
         if (error instanceof FASE1.SyntaxError) {
             if (isLexicalError(error)) {
-                consoleEditor.setValue('ERROR LÉXICO!, Carácter no reconocido: ' + error.message);
+                consoleEditor.setValue('ERROR LÉXICO!, Carácter no reconocido: ' + `Location: Line ${error.location.start.line}, Column ${error.location.start.column} `+error.message);
                 console.log(error.message)
             } else {
-                consoleEditor.setValue('ERROR SINTÁCTICO: ' + error.message);
+                consoleEditor.setValue('ERROR SINTÁCTICO: ' + `Location: Line ${error.location.start.line}, Column ${error.location.start.column} `+error.message);
+                //console.error(`Location: Line ${error.location.start.line}, Column ${error.location.start.column}`);
                 console.log(error.message)
             }
         } else {
             console.error('Error desconocido:', error);
         }
     }
-};
+};*/
 
 function isLexicalError(e) {
     const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
