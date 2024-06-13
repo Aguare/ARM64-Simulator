@@ -63,8 +63,10 @@ Value
   / Record
   / "[" Record "]"
   / Number
-  / "SP"
-  / "[" "SP" "]"
+  / "SP"i
+  / "MSP"i
+  / "[" "SP"i "]"
+  / "[" "MSP"i "]"
   / Label
   / CallVariable
   / stringValue
