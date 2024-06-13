@@ -11,79 +11,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css" rel="stylesheet">
 
-    <style>
-        :root {
-            --primary-color: #00ff00; /* Green text */
-            --secondary-color: #000000; /* Black background */
-            --accent-color: #ff0000; /* Red accent */
-            --foreground: #00ff00;
-        }
-
-        body {
-            background-color: var(--secondary-color);
-            color: var(--foreground);
-            font-family: 'Courier New', Courier, monospace;
-            padding: 30px;
-        }
-
-        .nav-bar {
-            background-color: var(--secondary-color);
-            border: 2px solid var(--primary-color);
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .nav-title {
-            font-size: 1.5rem;
-        }
-
-        .btn {
-            background-color: var(--secondary-color);
-            border: 2px solid var(--primary-color);
-            color: var(--primary-color);
-            padding: 10px;
-            margin-left: 10px;
-            cursor: pointer;
-        }
-
-        .btn:hover {
-            background-color: var(--primary-color);
-            color: var(--secondary-color);
-        }
-
-        .tab-content {
-            background-color: var(--secondary-color);
-            border: 2px solid var(--primary-color);
-            padding: 10px;
-            margin-top: 20px;
-        }
-
-        .CodeMirror {
-            height: 300px;
-            border: 2px solid var(--primary-color);
-            border-radius: 0;
-        }
-
-        .tab-nav {
-            border-bottom: 2px solid var(--primary-color);
-            margin-bottom: 10px;
-        }
-
-        .tab-nav a {
-            color: var(--primary-color);
-            margin-right: 10px;
-            text-decoration: none;
-            padding: 5px;
-            display: inline-block;
-        }
-
-        .tab-nav a.active {
-            border-bottom: 2px solid var(--accent-color);
-        }
-    </style>
+    <!-- External CSS -->
+    <link href="style.css" rel="stylesheet">
 
     <title>Proyecto Fase 1</title>
 </head>
@@ -117,19 +46,20 @@
                 <ul class="tab-nav" id="tab-nav">
                     <li>
                         <a class="active" data-toggle="tab" href="#tab1" role="tab">Tab 1</a>
+                        <span class="close-tab" onclick="closeTab(event, 'tab1')">&times;</span>
                     </li>
                 </ul>
                 <div class="tab-content" id="tab-content">
                     <div id="tab1" role="tabpanel">
                         <textarea id="julia__editor" class="CodeMirror"></textarea>
-                        
                     </div>
                 </div>
             </div>
             <div class="w-full md:w-1/2 p-4">
                 <ul class="tab-nav" id="console-tab-nav">
                     <li>
-                        <a class="active" data-toggle="tab" href="#console-tab1" role="tab">Console Tab 1</a>
+                        <a class="active console-tab" href="#console-tab1" role="tab">Console Tab 1</a>
+                        <span class="close-tab" onclick="closeTab(event, 'console-tab1')">&times;</span>
                     </li>
                 </ul>
                 <div class="tab-content" id="console-tab-content">
@@ -138,6 +68,24 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="error-container">
+            <h3>Errores Detectados</h3>
+            <table id="error-table">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Descripción</th>
+                        <th>Línea</th>
+                        <th>Columna</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Errores serán añadidos aquí -->
+                </tbody>
+            </table>
         </div>
     </div>
 
