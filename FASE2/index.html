@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <!-- Codemirror CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css" rel="stylesheet">
+
+    <!-- External CSS -->
+    <link href="style.css" rel="stylesheet">
+
+    <title>Proyecto Fase 1</title>
+</head>
+<body>
+    <a href="" id="download" style="display: none" download=""></a>
+    <div class="container">
+        <div class="flex flex-col md:flex-row">
+            <div class="w-full md:w-1/2 p-4">
+                <nav class="nav-bar">
+                    <div class="flex items-center">
+                        <button class="btn" id="btn__open" title="Open File">
+                            <i class="fas fa-cloud-upload-alt"></i> Open
+                        </button>
+                        <button class="btn" id="btn__save" title="Save File">
+                            <i class="fas fa-cloud-download-alt"></i> Save
+                        </button>
+                        <button class="btn" id="btn__newTab" title="New Tab">
+                            <i class="fas fa-plus"></i> New Tab
+                        </button>
+                    </div>
+                    <h3 class="nav-title">Fase 1 - OLC2</h3>
+                    <div class="flex items-center">
+                        <button class="btn" id="btn__analysis" title="Analysis">
+                            <i class="fas fa-play"></i> Run
+                        </button>
+                        <button class="btn" id="btn__clean" title="Clear Editor">
+                            <i class="fas fa-broom"></i> Clear
+                        </button>
+                    </div>
+                </nav>
+                <ul class="tab-nav" id="tab-nav">
+                    <li>
+                        <a class="active" data-toggle="tab" href="#tab1" role="tab">Tab 1</a>
+                        <span class="close-tab" onclick="closeTab(event, 'tab1')">&times;</span>
+                    </li>
+                </ul>
+                <div class="tab-content" id="tab-content">
+                    <div id="tab1" role="tabpanel">
+                        <textarea id="julia__editor" class="CodeMirror"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="w-full md:w-1/2 p-4">
+                <ul class="tab-nav" id="console-tab-nav">
+                    <li>
+                        <a class="active console-tab" href="#console-tab1" role="tab">Console Tab 1</a>
+                        <span class="close-tab" onclick="closeTab(event, 'console-tab1')">&times;</span>
+                    </li>
+                </ul>
+                <div class="tab-content" id="console-tab-content">
+                    <div id="console-tab1" role="tabpanel">
+                        <textarea id="console__result1" class="CodeMirror"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="error-container">
+            <h3>Errores Detectados</h3>
+            <table id="error-table">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Descripción</th>
+                        <th>Línea</th>
+                        <th>Columna</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Errores serán añadidos aquí -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- JQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- Codemirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/mode/simple.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/rust/rust.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+      
+    <!-- ============================= PARSER ============================== -->
+    <script src="parser.js"></script>
+    <!-- ============================= SCRIPT ============================== -->
+    <script src="script.js"></script>
+      
+</body>
+</html>
