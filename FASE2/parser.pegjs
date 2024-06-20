@@ -125,7 +125,7 @@ directive_p
     }
 // Nombre de las directivas
 directive_name
-  = "align" / "ascii" / "asciz" / "byte" / "hword" / "word" / "quad" /
+  = "align" / "ascii" / "asciz" / "byte" / "hword" / "word" / "quad" / "skip" / 
     "data" / "text" / "global" / "section" / "space" / "zero" / "incbin" / "set" / "equ" / "bss"
 
 // Secciones
@@ -141,11 +141,13 @@ section
 // Instrucciones en ARM64 v8 
 instruction
     = i:add_inst
+    / i:adc_inst
     / i:sub_inst
     / i:mul_inst
     / i:div_inst
     / i:udiv_inst
     / i:sdiv_inst
+    / i:ands_inst
     / i:and_inst
     / i:orr_inst
     / i:eor_inst
@@ -166,10 +168,194 @@ instruction
     / i:bne_inst
     / i:bgt_inst
     / i:blt_inst
+    / i:ble_inst
     / i:bl_inst
     / i:b_inst
     / i:ret_inst
     / i:svc_inst
+    / i:madd_inst
+    / i:mneg_inst
+    / i:msub_inst
+    / i:ngc_inst
+    / i:sbc_inst
+    / i:smaddl_inst
+    / i:cmn_inst
+    / i:smnegl_inst
+    / i:smsubl_inst
+    / i:smulh_inst
+    / i:smull_inst
+    / i:umaddl_inst
+    / i:umnegl_inst
+    / i:umsubl_inst
+    / i:umulh_inst
+    / i:umull_inst
+    / i:bfi_inst
+    / i:bfxil_inst
+    / i:cls_inst
+    / i:clz_inst
+    / i:rev_inst
+    / i:rev16_inst
+    / i:rev32_inst
+    / i:rbit_inst
+    / i:extr_inst
+    / i:sxtw_inst
+    / i:movk_inst
+    / i:movn_inst
+    / i:movz_inst
+    / i:bic_inst
+    / i:eon_inst
+    / i:tst_inst
+    / i:cbz_inst
+    / i:cbnz_inst
+    / i:tbz_inst
+    / i:tbnz_inst
+    / i:cas_inst
+    / i:swp_inst
+    / i:ccmn_inst
+    / i:ccmp_inst
+    / i:csel_inst
+    / i:cinc_inst
+    / i:cinv_inst
+    / i:cset_inst
+    / i:csetm_inst
+    / i:csinc_inst
+    / i:csinv_inst
+    / i:csneg_inst
+    / i:ldp_inst
+    / i:ldpsw_inst
+    / i:clr_inst
+    / i:set_inst
+    / i:crc32_inst
+    / i: uxt_inst
+
+
+// Instrucción Zero Extend Byte (UXTB)
+uxt_inst
+    = _* "UXTB"i _* rd:reg64 _* "," _* src1:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'UXTB');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+
+// Instrucción para multiplicación con signo de dos registros de 64 bits (SMULH)
+smulh_inst
+    = _* "SMULH"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SMULH');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
+// Instrucción para multiplicación de dos registros de 32 bits (SMULL)
+smull_inst
+    = _* "SMULL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SMULL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
+// Instrucción para multiplicar y sumar dos registros de 32 bits (UMADDL) 
+umaddl_inst
+    = _* "UMADDL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'UMADDL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucción para multiplicar y negar dos registros de 32 bits (UMNEGL)
+umnegl_inst
+    = _* "UMNEGL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _*  _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'UMNEGL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+
+// Instrucción para multiplicar y restar dos registros de 32 bits (UMSUBL)
+umsubl_inst
+    = _* "UMSUBL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'UMSUBL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucción para multiplicar dos registros de 64 bits y escribir el resultado de 128 bits en registro de 64 bits (UMULH)
+umulh_inst
+    = _* "UMULH"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'UMULH');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
+// instrucción para multiplicar dos registros de 32 bits y almacenar el resultado en un registro de 64 bits (UMULL)
+umull_inst
+    = _* "UMULL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'UMULL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
 // Instrucciones Suma 64 bits y 32 bits (ADD)
 add_inst "Instrucción de Suma"
     = _* "ADD"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
@@ -196,6 +382,264 @@ add_inst "Instrucción de Suma"
             addChild(node, src2);
             return node;
         }
+
+// Instrucciones Suma con acarreo 64 bits y 32 bits (ACD)
+adc_inst "Instrucción de Suma con acarreo"
+    = _* "ADC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'ADC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "ADC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'ADC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
+
+// Instrucciones para comparar con negado (CMN)
+cmn_inst "Instrucción de Comparación con negado"
+    = _* "CMN"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CMN');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "CMN"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CMN');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
+//Instrucciones para suma con multiplicacion 64 y 32 bits (MADD)
+madd_inst
+    = _* "MADD"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'MADD');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+    / _* "MADD"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'MADD');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucciones de negación con multiplicación de 64 y 32 bits (MNEG)
+mneg_inst
+    = _* "MNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'MNEG');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+    / _* "MNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'MNEG');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucciones de resta con multiplicación de 64 y 32 bits (MSUB)
+msub_inst
+    = _* "MSUB"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'MSUB');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+    / _* "MSUB"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'MSUB');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucciones de negación con carry 64 y 32 bits (NGC)
+ngc_inst
+    = _* "NGC"i _* rd:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'NGC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            addChild(rdNode, rd);
+            addChild(node, rdNode);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "NGC"i _* rd:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'NGC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            addChild(rdNode, rd);
+            addChild(node, rdNode);
+            addChild(node, src2);
+            return node;
+        }
+
+// Instrucciones de resta con carry 64 y 32 bits (SBC)
+sbc_inst
+    = _* "SBC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SBC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "SBC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SBC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
+// Instrucciones de multiplicación con signo 64 y 32 bits (SMADDL)
+smaddl_inst
+    = _* "SMADDL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SMADDL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucciones de multiplicación con signo negativo de 32 bits (SMNEGL)
+smnegl_inst
+    = _* "SMNEGL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _*  _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SMNEGL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+
+// Instrucciones de multiplicación con signo de dos registros de 32 bits (SMSUBL)
+smsubl_inst
+    = _* "SMSUBL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SMSUBL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+
+
 // Instrucciones de Resta 64 bits y 32 bits (SUB)  
 sub_inst
     = _* "SUB"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
@@ -326,6 +770,329 @@ sdiv_inst
             addChild(node, src2);
             return node;
         }
+
+// Instrucciones de manipulación de bits
+// Instrucción BFI 64 bits y 32 bits (BFI)
+bfi_inst
+    = _* "BFI"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BFI');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            addChild(node, src3);
+            return node;
+        }
+    / _* "BFI"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BFI');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucción BFXIL 64 bits y 32 bits (BFXIL)
+bfxil_inst
+    = _* "BFXIL"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BFXIL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            addChild(node, src3);
+            return node;
+        }
+    / _* "BFXIL"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BFXIL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucción CLS 64 bits y 32 bits (CLS)
+cls_inst
+    = _* "CLS"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CLS');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+    / _* "CLS"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CLS');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+
+// Instrucción CLZ 64 bits y 32 bits (CLZ)
+clz_inst
+    = _* "CLZ"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CLZ');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+    / _* "CLZ"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CLZ');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+
+// Instruccion EXTR 64 bits y 32 bits (EXTR)
+extr_inst
+    = _* "EXTR"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'EXTR');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+    / _* "EXTR"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'EXTR');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucción RBIT 64 bits y 32 bits (RBIT)
+rbit_inst
+    = _* "RBIT"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'RBIT');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+    / _* "RBIT"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'RBIT');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+
+// Instrucción REV 64 bits y 32 bits (REV)
+rev_inst
+    = _* "REV"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'REV');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+    / _* "REV"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'REV');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+
+// Instrucción REV16 64 bits y 32 bits (REV16)
+rev16_inst
+    = _* "REV16"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'REV16');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+    / _* "REV16"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'REV16');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+
+// Instrucción REV32 64 bits y 32 bits (REV32)
+rev32_inst
+    = _* "REV32"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'REV32');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+    / _* "REV32"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'REV32');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+
+// Instrucción BFIZ 64 bits y 32 bits (BFIZ)
+bfiz_inst
+    = _* "BFIZ"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BFIZ');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+    / _* "BFIZ"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BFIZ');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucción BFX 64 bits y 32 bits (BFX)
+bfx_inst
+    = _* "BFX"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BFX');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+    / _* "BFX"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BFX');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            addChild(node, src3);
+            return node;
+        }
+
+// Instrucción SXTW (SXTW)
+sxtw_inst
+    = _* "SXTW"i _* rd:reg64 _* "," _* src1:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SXTW');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+
 // Instrucciones AND 64 bits y 32 bits (AND)        
 and_inst
     = _* "AND"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
@@ -352,6 +1119,88 @@ and_inst
             addChild(node, src2);
             return node;
         }
+
+// Instrucción ANDS 64 y 32 bits (ANDS)
+ands_inst
+    = _* "ANDS"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'ANDS');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "ANDS"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'ANDS');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
+// Instrucción para limpiar bit a bit 64 bits y 32 bits (BIC)
+bic_inst
+    = _* "BIC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BIC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "BIC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BIC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
+// Instrucción para hacer un OR NOT exclusivo bit a bit 64 bits y 32 bits (EON)
+eon_inst
+    = _* "EON"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'EON');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "EON"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'EON');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
 // Instrucciones OR 64 bits y 32 bits (ORR)
 orr_inst
     = _* "ORR"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
@@ -417,6 +1266,118 @@ mov_inst "Instrucción MOV"
     addChild(node, srcNode);
     return node;
   }
+
+
+// Instrucción MOVK 64 bits y 32 bits (MOVK)
+movk_inst "Instrucción MOVK"
+  = _* "MOVK"i _* rd:reg64_or_reg32 _* "," _* src:movk_source _* comment? "\n"?
+  {
+    const node = createNode('INSTRUCTION', 'MOVK');
+    const rdNode = createNode('DESTINATION', 'RD');
+    const srcNode = createNode('SOURCE1', 'SRC1');
+    addChild(rdNode, rd);
+    addChild(srcNode, src);
+    addChild(node, rdNode);
+    addChild(node, srcNode);
+    return node;
+  }
+  / _* "MOVK"i _* rd:reg64_or_reg32 _* "," _* src:movk_source _* "," _* src2:movk_source _* comment? "\n"?
+  {
+    const node = createNode('INSTRUCTION', 'MOVK');
+    const rdNode = createNode('DESTINATION', 'RD');
+    const srcNode = createNode('SOURCE1', 'SRC1');
+    const src2Node = createNode('SOURCE2', 'SRC2');
+    addChild(rdNode, rd);
+    addChild(srcNode, src);
+    addChild(src2Node, src2);
+    addChild(node, rdNode);
+    addChild(node, srcNode);
+    addChild(node, src2Node);
+    return node;
+  }
+
+// Instrucción ORN 64 bits y 32 bits (ORN)
+orn_inst
+    = _* "ORN"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'ORN');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "ORN"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'ORN');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
+// Instrucción TST 64 bits y 32 bits (TST)
+tst_inst
+    = _* "TST"i _* rd:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'TST');
+            const rdNode = createNode('DESTINATION', 'RD');
+            addChild(rdNode, rd);
+            addChild(node, rdNode);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "TST"i _* rd:reg32 _* "," _* src2:operand32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'TST');
+            const rdNode = createNode('DESTINATION', 'RD');
+            addChild(rdNode, rd);
+            addChild(node, rdNode);
+            addChild(node, src2);
+            return node;
+        }
+
+
+// Instrucción MOVN 64 bits y 32 bits (MOVN)
+movn_inst
+    = _* "MOVN"i _* rd:reg64_or_reg32 _* "," _* src:movk_source _* comment? "\n"?
+    {
+        const node = createNode('INSTRUCTION', 'MOVN');
+        const rdNode = createNode('DESTINATION', 'RD');
+        const srcNode = createNode('SOURCE1', 'SRC1');
+        addChild(rdNode, rd);
+        addChild(srcNode, src);
+        addChild(node, rdNode);
+        addChild(node, srcNode);
+        return node;
+    }
+
+movz_inst
+    = _* "MOVZ"i _* rd:reg64_or_reg32 _* "," _* src:movk_source _* comment? "\n"?
+    {
+        const node = createNode('INSTRUCTION', 'MOVZ');
+        const rdNode = createNode('DESTINATION', 'RD');
+        const srcNode = createNode('SOURCE1', 'SRC1');
+        addChild(rdNode, rd);
+        addChild(srcNode, src);
+        addChild(node, rdNode);
+        addChild(node, srcNode);
+        return node;
+    }
+
+
+movk_source
+    = "#" i:immediate
+    {
+        return i;
+    }
 
 reg64_or_reg32 "Registro de 64 o 32 Bits"
   = reg64
@@ -502,6 +1463,8 @@ ldrb_inst "Instrucción LDRB"
             return node;
         }
 
+// INSTRUCCIONES DE CARGA Y ALMACENAMIENTO
+
 // Instrucción Load Pair Register (LDP)
 ldp_inst "Instrucción LDP"
     = _* "LDP"i _* rd:reg64 _* "," _* rd2:reg64 _* "," _* src:ldr_source _* comment? "\n"?
@@ -530,6 +1493,78 @@ ldp_inst "Instrucción LDP"
             addChild(node, rdNode);
             addChild(node, rd2Node);
             addChild(node, srcNode);
+            return node;
+        }
+
+// Instrucción Load Pair Register Post Indexed (LDPSW)
+ldpsw_inst
+    = _* "LDPSW"i _* rd:reg64 _* "," _* rd2:reg64 _* "," _* src:ldr_source _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'LDPSW');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const rd2Node = createNode('DESTINATION', 'RD2');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(rd2Node, rd2);
+            addChildren(srcNode, src);
+            addChild(node, rdNode);
+            addChild(node, rd2Node);
+            addChild(node, srcNode);
+            return node;
+        }
+
+// Instrucción PRFM
+prfm_inst
+    = _* "PRFM"i _* rd:reg64 _* "," _* src:ldr_source _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'PRFM');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChildren(srcNode, src);
+            addChild(node, rdNode);
+            addChild(node, srcNode);
+            return node;
+        }
+
+// OPERACIONES ATÓMICAS
+
+// Instrucción CLR 64 bits y 32 bits (CLR)
+clr_inst
+    = _* "CLR"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CLR');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+    / _* "CLR"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CLR');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            return node;
+        }
+
+// Instrucción SET 64 bits y 32 bits (SET)
+set_inst
+    = _* "SET"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SET');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
             return node;
         }
 
@@ -799,6 +1834,17 @@ b_inst "Instrucción B"
             return node;
         }
 
+// Instrucción BLE (Branch Less or Equal)
+ble_inst "Instrucción BLE"
+    = _* "BLE"i _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BLE');
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
 // Instrucción Branch with Link (BL)
 bl_inst "Instrucción BL"
     = _* "BL"i _* l:label _* comment? "\n"?
@@ -810,11 +1856,91 @@ bl_inst "Instrucción BL"
             return node;
         }
 
+// Instrucción Branch with Link and Register (BLR)
+blr_inst "Instrucción BLR"
+    = _* "BLR"i _* src:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BLR');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            addChild(srcNode, src);
+            addChild(node, srcNode);
+            return node;
+        }
+
+// Instrucción Branch and Register (BR)
+br_inst "Instrucción BR"
+    = _* "BR"i _* src:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'BR');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            addChild(srcNode, src);
+            addChild(node, srcNode);
+            return node;
+        }
+
+// Instrucción Compare and Branch On Zero (CBNZ)
+cbnz_inst
+    = _* "CBNZ"i _* src:reg64_or_reg32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CBNZ');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(srcNode, src);
+            addChild(labelNode, l);
+            addChild(node, srcNode);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Compare and Branch (CBZ)
+cbz_inst
+    = _* "CBZ"i _* src:reg64_or_reg32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CBZ');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(srcNode, src);
+            addChild(labelNode, l);
+            addChild(node, srcNode);
+            addChild(node, labelNode);
+            return node;
+        }
+
 // Instrucción Retornar de Subrutina (RET)
 ret_inst "Instrucción RET"
     = _* "RET"i _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'RET');
+            return node;
+        }
+
+// Instrucción Test and Branch on Zero (TBNZ)
+tbnz_inst
+    = _* "TBNZ"i _* src:reg64_or_reg32 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'TBNZ');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(srcNode, src);
+            addChild(labelNode, l);
+            addChild(node, srcNode);
+            addChild(node, i);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Test and Branch (TBZ)
+tbz_inst
+    = _* "TBZ"i _* src:reg64_or_reg32 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'TBZ');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(srcNode, src);
+            addChild(node, srcNode);
+            addChild(node, i);
+            addChild(labelNode, l);
+            addChild(node, labelNode);
             return node;
         }
 
@@ -871,6 +1997,404 @@ svc_inst "Instrucción SVC"
             return node;
         }
 
+// Instrucciones atómicas
+
+// Instrucción Compare and Swap (CAS) word or doubleword memory
+cas_inst
+    = _* "CAS"i "A"i? "L"i? _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CAS');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+    / _* "CAS"i "A"i? "L"i? _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CAS');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+
+// Instrucción  Swap Word or Doubleword memory in memory amotically loads (SWP/SWPA/SWPAL/SWPL)
+swp_inst
+    = _* "SWP"i "A"i? "L"i? _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SWP');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+    / _* "SWP"i "A"i? "L"i? _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'SWP');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+
+// Instrucciones condicionales
+
+// Instrucción Conditional Compare Negative (CCMN)
+ccmn_inst
+    = _* "CCMN"i _* src1:reg64 _* "," _* src2:operand64 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CCMN');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(src1Node, src1);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            addChild(node, i);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CCMN"i _* src1:reg32 _* "," _* src2:operand32 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CCMN');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(src1Node, src1);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            addChild(node, i);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional Compare (CCMP)
+ccmp_inst
+    = _* "CCMP"i _* src1:reg64 _* "," _* src2:operand64 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CCMP');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(src1Node, src1);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            addChild(node, i);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CCMP"i _* src1:reg32 _* "," _* src2:operand32 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CCMP');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(src1Node, src1);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            addChild(node, i);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional Increment (CINC)
+cinc_inst
+    = _* "CINC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CINC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CINC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CINC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional Invert (CINV)
+cinv_inst
+    = _* "CINV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CINV');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CINV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CINV');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional Negate (CNEG)
+cneg_inst
+    = _* "CNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CNEG');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CNEG');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional select (CSEL)
+csel_inst
+    = _* "CSEL"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSEL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CSEL"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSEL');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional Set (CSET)
+cset_inst
+    = _* "CSET"i _* rd:reg64 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSET');
+            const rdNode = createNode('DESTINATION', 'RD');
+            addChild(rdNode, rd);
+            addChild(node, rdNode);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CSET"i _* rd:reg32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSET');
+            const rdNode = createNode('DESTINATION', 'RD');
+            addChild(rdNode, rd);
+            addChild(node, rdNode);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional Set Mask (CSETM)
+csetm_inst
+    = _* "CSETM"i _* rd:reg64 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSETM');
+            const rdNode = createNode('DESTINATION', 'RD');
+            addChild(rdNode, rd);
+            addChild(node, rdNode);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CSETM"i _* rd:reg32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSETM');
+            const rdNode = createNode('DESTINATION', 'RD');
+            addChild(rdNode, rd);
+            addChild(node, rdNode);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional Select Increment (CSINC)
+csinc_inst
+    = _* "CSINC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSINC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CSINC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSINC');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional Select Invert (CSINV)
+csinv_inst
+    = _* "CSINV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSINV');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CSINV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSINV');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+
+// Instrucción Conditional Select Negate (CSNEG)
+csneg_inst
+    = _* "CSNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSNEG');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
+    / _* "CSNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* l:label _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CSNEG');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            const labelNode = createNode('LABEL', 'LBL');
+            addChild(labelNode, l);
+            addChild(node, labelNode);
+            return node;
+        }
 
 // Registros de propósito general 64 bits (limitado a los registros válidos de ARM64)
 reg64 "Registro_64_Bits"
@@ -898,6 +2422,109 @@ reg64 "Registro_64_Bits"
             setValue(node, text());
             return node;
         }
+    / "PC"i  // Program Counter
+        {
+            const node = createNode('R_PROGRAM_COUNTER', 'PC');
+            setValue(node, text());
+            return node;
+        }
+    / "XZR"i // Zero Register
+        {
+            const node = createNode('R_ZERO_REGISTER', 'ZR');
+            setValue(node, text());
+            return node;
+        }
+
+// INSTRUCCIONES DE SUMA DE COMPROBACIÓN
+
+// Instrucción Checksum (CRC32B/ CRC32H/ CRC32W/ CRC32X)
+crc32_inst
+    =  _* "CRC32"i "C"i? "B"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CRC32B');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+    / _* "CRC32"i "C"i? "H"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CRC32H');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+    / _* "CRC32"i "C"i? "W"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CRC32W');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+    / _* "CRC32"i "C"i? "X"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'CRC32X');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            const src2Node = createNode('SOURCE2', 'SRC2');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(src2Node, src2);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2Node);
+            return node;
+        }
+
+// INSTRUCCIONES DE CARGA Y ALMACENAMIENTO CON ATRIBUTOS
+
+// Instrucción LD (Load)
+ld_inst
+    = _* "LD"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'LD');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+    / _* "LD"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand64 _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'LD');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const src1Node = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChild(src1Node, src1);
+            addChild(node, rdNode);
+            addChild(node, src1Node);
+            addChild(node, src2);
+            return node;
+        }
+
 // Registros de propósito general 32 bits (limitado a los registros válidos de ARM64)
 reg32 "Registro_32_Bits"
     = "w"i ("30" / [12][0-9] / [0-9])
@@ -1029,25 +2656,25 @@ extend_op "Operador de Extensión"
 
 // Definición de valores inmediatos
 immediate "Inmediato"
-    = integer
+    = ("+"/"-")? integer
         {
             const node = createNode('INMEDIATE_OP', 'Integer');
             setValue(node, text());
             return node;
         }
-    / "#" "'"letter"'"
+    / "#"? "'"letter"'"
         {
             const node = createNode('INMEDIATE_OP', '#');
             setValue(node, text());
             return node;
         }
-    / "#" "0x" hex_literal
+    / "#"? "0x" hex_literal
         {
             const node = createNode('INMEDIATE_OP', '#');
             setValue(node, text());
             return node;
         }
-    / "#" "0b" binary_literal
+    / "#"? "0b" binary_literal
         {
             const node = createNode('INMEDIATE_OP', '#');
             setValue(node, text());
