@@ -407,4 +407,107 @@ function showQuartersTable() {
 
 }
 
+//Graficar CST
 
+function jsonToDot(json) {
+    let dot = 'digraph G {\n';
+
+    function traverse(node, parentId = null) {
+        const nodeId = node.id.replace(/\\\"/g, '');
+        dot += `  ${nodeId} [label="${node.value}"];
+`;
+        if (parentId) {
+            dot += `  ${parentId} -> ${nodeId};
+`;
+        }
+        for (let child of node.children) {
+            traverse(child, nodeId);
+        }
+    }
+
+    traverse(json);
+    dot += '}';
+    return dot;
+}
+
+function dotToVis(dotString) {
+    const nodeRegex = /(\S+)\s+\[label="([^"]+)"\];/g;
+    const edgeRegex = /(\S+)\s+->\s+(\S+);/g;
+    const nodes = [];
+    const edges = [];
+    let match;
+    
+    while (match = nodeRegex.exec(dotString)) {
+        nodes.push({ id: match[1], label: match[2] });
+    }
+
+    while (match = edgeRegex.exec(dotString)) {
+        edges.push({ from: match[1], to: match[2] });
+    }
+
+    return { nodes, edges };
+}
+
+
+document.getElementById('btn__cst').addEventListener('click', generateCST);
+
+function generateCST() {
+    const activeTabId = getActiveTabId();
+    const editor = editors[activeTabId];
+    const text = editor.getValue();
+
+    try {
+        let resultado = FASE1.parse(text);
+        let dotString = jsonToDot(resultado);
+
+        console.log("dotString generado:", dotString);
+
+        let { nodes, edges } = dotToVis(dotString);
+
+        let htmlContent = `
+            <html>
+                <head>
+                    <title>CST</title>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+                </head>
+                <body>
+                    <div id="mynetwork" style="width: 100%; height: 100%;"></div>
+                    <script>
+                        window.addEventListener('load', function() {
+                            let container = document.getElementById('mynetwork');
+                            let nodes = new vis.DataSet(${JSON.stringify(nodes)});
+                            let edges = new vis.DataSet(${JSON.stringify(edges)});
+                            let data = { nodes: nodes, edges: edges };
+                            let options = {
+                                layout: {
+                                    hierarchical: {
+                                        direction: 'UD', // UD for top-down, can also be LR for left-right
+                                        sortMethod: 'directed' // Or 'hubsize' depending on the desired layout
+                                    }
+                                },
+                                edges: {
+                                    smooth: true
+                                },
+                                physics: {
+                                    hierarchicalRepulsion: {
+                                        nodeDistance: 120
+                                    },
+                                    solver: 'hierarchicalRepulsion'
+                                }
+                            };
+                            let network = new vis.Network(container, data, options);
+                        });
+                    </script>
+                </body>
+            </html>
+        `;
+
+        let newWindow = window.open('', '', 'width=800,height=600');
+        newWindow.document.open();
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+    } catch (error) {
+        console.error('Error generando el CST:', error);
+        alert('Error generando el CST: ' + error.message);
+    }
+}
