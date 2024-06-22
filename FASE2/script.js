@@ -240,6 +240,12 @@ const analysis = async () => {
         const errorTableBody = document.querySelector('#error-table tbody');
         errorTableBody.innerHTML = ''; // Clear previous errors
         consoleEditor.setValue("ENTRADA VALIDA, Su JSON resultante es: \n" + JSON.stringify(resultado));
+        console.log(resultado)
+        const c3d = resultado.getC3d(resultado);
+        console.log(c3d);
+        const quarters = resultado.getQuarters(c3d);
+        console.log("QUARTERS:");
+        console.log(quarters);
     } catch (error) {
         console.log(FASE1)
         if (error instanceof FASE1.SyntaxError) {

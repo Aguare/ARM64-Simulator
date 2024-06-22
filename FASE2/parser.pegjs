@@ -15,6 +15,7 @@
                 return v.toString(16);
             });
         }
+
         // Función para obtener el código .dot del árbol de sintaxis concreto "CST"
         getDot(node){
             let dot = '';
@@ -47,6 +48,50 @@
             console.log(dot);
             return dot;
         }
+
+        // Función para obtener una lista de c3d de los nodos "Instruction" del árbol de sintaxis concreto "CST"
+        // Esta función creará objetos tipo { resultado: 'R0', operador1: 'R1', operador2: 'R2', operacion: 'ADD' }
+        getC3d(node){
+            let instructions = [];
+            function getC3d(node){
+                if(node.type === 'INSTRUCTION'){
+                    let instruction = { resultado: '', operador1: '', operador2: '', operacion: '' };
+                    instruction.operacion = node.value;
+                    node.children.forEach(child => {
+                        if(child.type === 'DESTINATION'){
+                            instruction.resultado = child.children[0].value;
+                        }
+                        if(child.type === 'SOURCE1'){
+                            instruction.operador1 = child.children[0].value;
+                        }
+                        if(child.type === 'SOURCE2'){
+                            instruction.operador2 = child.children[0].value;
+                        }
+                    });
+                    instructions.push(instruction);
+                }
+                node.children.forEach(child => getC3d(child));
+            }
+            getC3d(node);
+            return instructions;
+        }
+
+        // Función para obtener una lista de cuadruplos
+        // Esta función recibe por parámetros un objeto con las instrucciones c3d { resultado: 'R0', operador1: 'R1', operador2: 'R2', operacion: 'ADD' }
+        // Un cuadruplo se conforma de el operator, operando1, operando2 y destino
+        getQuarters(c3dList) {
+            let quarters = [];
+            c3dList.forEach(c3d => {
+                let quarter = { operator: '', operand1: '', operand2: '', destination: '' };
+                quarter.operator = c3d.operacion;
+                quarter.operand1 = c3d.operador1;
+                quarter.operand2 = c3d.operador2;
+                quarter.destination = c3d.resultado;
+                quarters.push(quarter);
+            });
+            return quarters;
+        }
+
     }
     // Funciones para crear y manipular nodos del árbol de sintaxis concreto "CST"
     function createNode(type, value, children = []){
@@ -153,8 +198,8 @@ instruction
     / i:eor_inst
     / i:mov_inst
     / i:mvn_inst
-    / i:ldr_inst
     / i:ldrb_inst
+    / i:ldr_inst
     / i:ldp_inst
     / i:strb_inst
     / i:str_inst
@@ -1387,6 +1432,33 @@ mov_source "Source para MOV"
   = reg64_or_reg32
   / immediate
 
+
+// Instrucción Load Register (LDRB)
+ldrb_inst "Instrucción LDRB"
+    = _* "LDRB"i _* rd:reg64 _* "," _* src:ldr_source _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'LDRB');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChildren(srcNode, src);
+            addChild(node, rdNode);
+            addChild(node, srcNode);
+            return node;
+        }
+    / _* "LDRB"i _* rd:reg32 _* "," _* src:ldr_source _* comment? "\n"?
+        {
+            const node = createNode('INSTRUCTION', 'LDRB');
+            const rdNode = createNode('DESTINATION', 'RD');
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            addChild(rdNode, rd);
+            addChildren(srcNode, src);
+            addChild(node, rdNode);
+            addChild(node, srcNode);
+            return node;
+        }
+
+
 //  Instucción Load Register (LDR)
 ldr_inst "Instrucción LDR"
     = _* "LDR"i _* rd:reg64 _* "," _* src:ldr_source _* comment? "\n"?
@@ -1421,46 +1493,21 @@ ldr_source
         {
             return [r, r2, s, i2];
         }
-    / "[" _* r:reg64 _* "," _* i:immediate _* "," _* s:shift_op _* i2:immediate _* "]"
+    / "[" _* r:reg64 _* "," _* i:operand64 _* "," _* s:shift_op _* i2:immediate _* "]"
         {
             return [r, i, s, i2];
         }
-    / "[" _* r:reg64 _* "," _* i:immediate _* "," _* e:extend_op _* "]" 
+    / "[" _* r:reg64 _* "," _* i:operand64 _* "," _* e:extend_op _* "]" 
         {
             return [r, i, e];
         }
-    / "[" _* r:reg64 _* "," _* i:immediate _* "]"
+    / "[" _* r:reg64 _* "," _* i:operand64 _* "]"
         {
             return [r, i];
         }
     / "[" _* r:reg64 _* "]"
         {
             return [r];
-        }
-
-// Instrucción Load Register (LDRB)
-ldrb_inst "Instrucción LDRB"
-    = _* "LDRB"i _* rd:reg64 _* "," _* src:ldr_source _* comment? "\n"?
-        {
-            const node = createNode('INSTRUCTION', 'LDRB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
-            addChild(rdNode, rd);
-            addChildren(srcNode, src);
-            addChild(node, rdNode);
-            addChild(node, srcNode);
-            return node;
-        }
-    / _* "LDRB"i _* rd:reg32 _* "," _* src:ldr_source _* comment? "\n"?
-        {
-            const node = createNode('INSTRUCTION', 'LDRB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
-            addChild(rdNode, rd);
-            addChildren(srcNode, src);
-            addChild(node, rdNode);
-            addChild(node, srcNode);
-            return node;
         }
 
 // INSTRUCCIONES DE CARGA Y ALMACENAMIENTO
@@ -1597,15 +1644,15 @@ str_source
         {
             return [r, r2, s, i2];
         }
-    / "[" _* r:reg64 _* "," _* i:immediate _* "," _* s:shift_op _* i2:immediate _* "]"
+    / "[" _* r:reg64 _* "," _* i:operand64 _* "," _* s:shift_op _* i2:immediate _* "]"
         {
             return [r, i, s, i2];
         }
-    / "[" _* r:reg64 _* "," _* i:immediate _* "," _* e:extend_op _* "]" 
+    / "[" _* r:reg64 _* "," _* i:operand64 _* "," _* e:extend_op _* "]" 
         {
             return [r, i, e];
         }
-    / "[" _* r:reg64 _* "," _* i:immediate _* "]"
+    / "[" _* r:reg64 _* "," _* i:operand64 _* "]"
         {
             return [r, i];
         }
@@ -1993,7 +2040,9 @@ svc_inst "Instrucción SVC"
     = _* "SVC"i _* i:immediate _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'SVC');
-            addChild(node, i);
+            const srcNode = createNode('SOURCE1', 'SRC1');
+            addChild(srcNode, i);
+            addChild(node, srcNode);
             return node;
         }
 
