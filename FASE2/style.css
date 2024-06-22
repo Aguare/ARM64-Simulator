@@ -123,3 +123,38 @@ body {
 #error-table th {
     background-color: var(--secondary-color);
 }
+
+.c3d-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.c3d-table th, .c3d-table td {
+    border: 1px solid #00ff00;
+    padding: 8px;
+    text-align: left;
+}
+
+.c3d-table th {
+    background-color: #000000;
+}
+
+.quarters-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.quarters-table th, .quarters-table td {
+    border: 1px solid #00ff00;
+    padding: 8px;
+    text-align: left;
+}
+
+.quarters-table th {
+    background-color: #000000;
+}
+
+.hidden {
+    display: none;
+}
+

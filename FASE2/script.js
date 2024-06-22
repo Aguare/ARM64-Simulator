@@ -20,6 +20,11 @@ $(document).ready(function () {
             activateConsoleTab(e.target);
         }
     });
+
+    document.getElementById('btn__showC3dTable').addEventListener('click', showC3dTable);
+    document.getElementById('btn__showQuartersTable').addEventListener('click', showQuartersTable);
+
+
 });
 
 const createEditor = (id, language, lineNumbers = true, readOnly = false, styleActiveLine = true) => {
@@ -189,8 +194,21 @@ const download = (name, content) => {
 };
 
 const cleanEditors = (...editors) => {
+    // Limpia todos los editores y consolas pasados a la función
     editors.forEach(editor => editor.setValue(""));
+
+    // Limpia las tablas y oculta los títulos
+    const c3dTableContainer = document.getElementById('c3dTableContainer');
+    const quartersTableContainer = document.getElementById('quartersTableContainer');
+    const c3dTableTitle = document.getElementById('c3dTableTitle');
+    const quartersTableTitle = document.getElementById('quartersTableTitle');
+
+    c3dTableContainer.innerHTML = '';
+    quartersTableContainer.innerHTML = '';
+    c3dTableTitle.classList.add('hidden');
+    quartersTableTitle.classList.add('hidden');
 };
+
 
 const getActiveTabId = () => {
     const activeTabLink = document.querySelector('.tab-nav a.active');
@@ -201,6 +219,8 @@ const getActiveConsoleTabId = () => {
     const activeConsoleTabLink = document.querySelector('#console-tab-nav a.active');
     return activeConsoleTabLink ? activeConsoleTabLink.getAttribute('href').substring(1) : null;
 };
+
+
 
 const btnOpen = document.getElementById('btn__open'),
     btnSave = document.getElementById('btn__save'),
@@ -301,3 +321,90 @@ function isLexicalError(e) {
     }
     return false; // Error sintáctico
 }
+
+function showC3dTable() {
+    const activeTabId = getActiveTabId();
+    const editor = editors[activeTabId];
+    const text = editor.getValue();
+
+    try {
+        let parsedResult = FASE1.parse(text);
+        let c3dInstructions = parsedResult.getC3d(parsedResult);
+
+        const tableContainer = document.getElementById('c3dTableContainer');
+        tableContainer.innerHTML = ''; // Limpiar tabla existente
+
+        let table = document.createElement('table');
+        table.className = 'c3d-table';
+        let thead = table.createTHead();
+        let tbody = table.createTBody();
+
+        // Encabezados de la tabla
+        let headerRow = thead.insertRow();
+        ['Resultado', 'Operador1', 'Operador2', 'Operación'].forEach(headerText => {
+            let headerCell = document.createElement('th');
+            headerCell.textContent = headerText;
+            headerRow.appendChild(headerCell);
+        });
+
+        // Filas de la tabla
+        c3dInstructions.forEach(instr => {
+            let row = tbody.insertRow();
+            [instr.resultado, instr.operador1, instr.operador2, instr.operacion].forEach(text => {
+                let cell = row.insertCell();
+                cell.textContent = text;
+            });
+        });
+
+        tableContainer.appendChild(table);
+    } catch (error) {
+        console.error('Error al generar la tabla C3D:', error);
+    }
+    document.getElementById('c3dTableTitle').classList.remove('hidden');
+
+}
+
+function showQuartersTable() {
+    const activeTabId = getActiveTabId();
+    const editor = editors[activeTabId];
+    const text = editor.getValue();
+
+    try {
+        let parsedResult = FASE1.parse(text);
+        let c3dInstructions = parsedResult.getC3d(parsedResult);
+        let quartersData = parsedResult.getQuarters(c3dInstructions);
+
+        const tableContainer = document.getElementById('quartersTableContainer');
+        tableContainer.innerHTML = ''; // Limpiar tabla existente
+
+        let table = document.createElement('table');
+        table.className = 'quarters-table';
+        let thead = table.createTHead();
+        let tbody = table.createTBody();
+
+        // Encabezados de la tabla
+        let headerRow = thead.insertRow();
+        ['Operator', 'Operand 1', 'Operand 2', 'Destination'].forEach(headerText => {
+            let headerCell = document.createElement('th');
+            headerCell.textContent = headerText;
+            headerRow.appendChild(headerCell);
+        });
+
+        // Filas de la tabla
+        quartersData.forEach(quarter => {
+            let row = tbody.insertRow();
+            [quarter.operator, quarter.operand1, quarter.operand2, quarter.destination].forEach(text => {
+                let cell = row.insertCell();
+                cell.textContent = text;
+            });
+        });
+
+        tableContainer.appendChild(table);
+    } catch (error) {
+        console.error('Error al generar la tabla Quarters:', error);
+    }
+    document.getElementById('quartersTableTitle').classList.remove('hidden');
+
+}
+
+
