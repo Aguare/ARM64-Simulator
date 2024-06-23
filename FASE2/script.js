@@ -255,6 +255,7 @@ const analysis = async () => {
     const editor = editors[activeTabId];
     const consoleEditor = consoles[activeConsoleTabId];
     const text = editor.getValue();
+    const startTime = performance.now();
     try {
         let resultado = FASE1.parse(text);
         const errorTableBody = document.querySelector('#error-table tbody');
@@ -279,6 +280,9 @@ const analysis = async () => {
             console.error('Error desconocido:', error);
         }
     }
+    const endTime = performance.now();
+    const executionTime = endTime - startTime;
+    document.getElementById('execution-time').innerText = executionTime.toFixed(2);
 };
 /*const analysis = async () => {
     const activeTabId = getActiveTabId();
