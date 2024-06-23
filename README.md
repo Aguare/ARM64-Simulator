@@ -1,6 +1,4 @@
 # ARM64-Simulator
-
-Entregables:
 1. [Simulador ARM64 Primera Fase ](https://Aguare.github.io/ARM64-Simulator/Grammar/index.html)
    
 2. [Simulador ARM64 Segunda Fase ](https://Aguare.github.io/ARM64-Simulator/FASE2/index.html)
