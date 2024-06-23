@@ -1,4 +1,23 @@
 {
+    // Arreglo para descomponer operaciones 
+    // Tipo: MSUB se descompone en SUB, MUL
+    // MADD se descompone en ADD, MUL
+    const operations = [
+        { operation: 'MSUB', type:'arithmetic', decompose: ['SUB', 'MUL'] },
+        { operation: 'MADD', type:'arithmetic', decompose: ['ADD', 'MUL'] },
+        { operation: 'MNEG', type:'arithmetic', decompose: ['NEG', 'MUL'] },
+        { operation: 'SMADDL', type:'arithmetic', decompose: ['ADD', 'MUL'] },
+        { operation: 'SMNEGL', type:'arithmetic', decompose: ['NEG', 'MUL'] },
+        { operation: 'SMSUBL', type:'arithmetic', decompose: ['SUB', 'MUL'] },
+        { operation: 'UMADDL', type:'arithmetic', decompose: ['ADD', 'MUL'] },
+        { operation: 'UMNEGL', type:'arithmetic', decompose: ['NEG', 'MUL'] },
+        { operation: 'UMSUBL', type:'arithmetic', decompose: ['SUB', 'MUL'] },
+        { operation: 'CSEL', type:'conditional', decompose: ['MOV', 'MOV', 'CMP'] },
+        { operation: 'CINC', type:'conditional', decompose: ['ADD', 'MOV', 'CMP'] },
+        { operation: 'CSINC', type:'conditional', decompose: ['ADD', 'MOV', 'CMP'] },
+        { operation: 'CSINV', type:'conditional', decompose: ['NEG', 'NEG', 'CMP'] },
+        { operation: 'CSNEG', type:'conditional', decompose: ['MOV', 'NEG', 'CMP'] }
+    ];
     // Clase para representar un nodo del árbol de sintaxis concreto "CST"
     class ASTnode{
         constructor(type, value, children = []){
@@ -53,21 +72,48 @@
         // Esta función creará objetos tipo { resultado: 'R0', operador1: 'R1', operador2: 'R2', operacion: 'ADD' }
         getC3d(node){
             let instructions = [];
+            let temporalCounter = 1;
             function getC3d(node){
                 if(node.type === 'INSTRUCTION'){
                     let instruction = { resultado: '', operador1: '', operador2: '', operacion: '' };
                     instruction.operacion = node.value;
-                    node.children.forEach(child => {
-                        if(child.type === 'DESTINATION'){
-                            instruction.resultado = child.children[0].value;
+                    if(node.children.length === 4) {
+                        // Si es mayor a 4 se debe crear una operación temporal con los valores 3 y 2 del arreglo
+                        // Ejemplo: MADD R0, R1, R2, R3
+                        // t1 = R1 * R2
+                        // RO = R3 + t1
+                        // La operación se toma del arreglo operations
+                        const operation = operations.find(op => op.operation === node.value);
+                        if(operation && operation.type === 'arithmetic') {
+                            const temp1 = { resultado: 'T' + temporalCounter, operador1: node.children[1].children[0].value, operador2: node.children[2].children[0].value, operacion: operation.decompose[1] };
+                            instructions.push(temp1);
+                            instruction.operacion = operation.decompose[0];
+                            instruction.resultado = node.children[0].children[0].value;
+                            instruction.operador1 = node.children[3].children[0].value;
+                            instruction.operador2 = 'T' + temporalCounter;
+                            temporalCounter++;
+                        } else if (operation && operation.type === 'conditional') {
+                            const temp1 = { resultado: '', operador1: node.children[3].children[0].value, operador2: '', operacion: operation.decompose[operation.decompose.length - 1] };
+                            instructions.push(temp1);
+                            instruction.operacion = operation.decompose[0];
+                            instruction.resultado = node.children[0].children[0].value;
+                            instruction.operador1 = node.children[1].children[0].value;
+                            instruction.operador2 = ''
+                            let instruction2 = { resultado: '', operador1: '', operador2: '', operacion: '' };
+                            instruction2.operacion = operation.decompose[1];
+                            instruction2.resultado = node.children[0].children[0].value;
+                            instruction2.operador1 = node.children[2].children[0].value;
+                            instruction2.operador2 = ''
+                            instructions.push(instruction2);
                         }
-                        if(child.type === 'SOURCE1'){
-                            instruction.operador1 = child.children[0].value;
+                    } else {
+                        for(let i = 0; i < node.children.length; i++) {
+                            if(i === 0) instruction.resultado = node.children[i].children[0].value;
+                            if(i === 1) instruction.operador1 = node.children[i].children.length === 1 ? node.children[i].children[0].value : node.children[i].children[0].value + ' ' + node.children[i].children[1].children[0].value;
+                            if(i === 2) instruction.operador2 = node.children[i].children.length === 1 ? node.children[i].children[0].value : node.children[i].children[0].value + ' ' + node.children[i].children[1].children[0].value;
+                            if(i === 3) instruction.operacion = node.children[i].children.length === 1 ? node.children[i].children[0].value : node.children[i].children[0].value + ' ' + node.children[i].children[1].children[0].value;
                         }
-                        if(child.type === 'SOURCE2'){
-                            instruction.operador2 = child.children[0].value;
-                        }
-                    });
+                    }
                     instructions.push(instruction);
                 }
                 node.children.forEach(child => getC3d(child));
@@ -93,6 +139,12 @@
         }
 
     }
+
+    // Función recursiva para concatenar todos los hijos de un nodo
+    function getValues(children) {
+
+    }
+
     // Funciones para crear y manipular nodos del árbol de sintaxis concreto "CST"
     function createNode(type, value, children = []){
         return new ASTnode(type, value, children);
@@ -490,13 +542,11 @@ madd_inst
             const node = createNode('INSTRUCTION', 'MADD');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -505,13 +555,11 @@ madd_inst
             const node = createNode('INSTRUCTION', 'MADD');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -523,13 +571,11 @@ mneg_inst
             const node = createNode('INSTRUCTION', 'MNEG');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -538,13 +584,11 @@ mneg_inst
             const node = createNode('INSTRUCTION', 'MNEG');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -556,13 +600,11 @@ msub_inst
             const node = createNode('INSTRUCTION', 'MSUB');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -571,13 +613,11 @@ msub_inst
             const node = createNode('INSTRUCTION', 'MSUB');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -637,13 +677,11 @@ smaddl_inst
             const node = createNode('INSTRUCTION', 'SMADDL');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -655,13 +693,11 @@ smnegl_inst
             const node = createNode('INSTRUCTION', 'SMNEGL');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             return node;
         }
 
@@ -672,14 +708,12 @@ smsubl_inst
             const node = createNode('INSTRUCTION', 'SMSUBL');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            setNode();
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
-            addChild(node, src3);
+            addChild(node, src2);
             return node;
         }
 
@@ -932,13 +966,11 @@ extr_inst
             const node = createNode('INSTRUCTION', 'EXTR');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -947,13 +979,11 @@ extr_inst
             const node = createNode('INSTRUCTION', 'EXTR');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -1065,13 +1095,11 @@ bfiz_inst
             const node = createNode('INSTRUCTION', 'BFIZ');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -1080,13 +1108,11 @@ bfiz_inst
             const node = createNode('INSTRUCTION', 'BFIZ');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -1098,13 +1124,11 @@ bfx_inst
             const node = createNode('INSTRUCTION', 'BFX');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -1113,13 +1137,11 @@ bfx_inst
             const node = createNode('INSTRUCTION', 'BFX');
             const rdNode = createNode('DESTINATION', 'RD');
             const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
             addChild(rdNode, rd);
             addChild(src1Node, src1);
-            addChild(src2Node, src2);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            addChild(node, src2Node);
+            addChild(node, src2);
             addChild(node, src3);
             return node;
         }
@@ -1331,13 +1353,11 @@ movk_inst "Instrucción MOVK"
     const node = createNode('INSTRUCTION', 'MOVK');
     const rdNode = createNode('DESTINATION', 'RD');
     const srcNode = createNode('SOURCE1', 'SRC1');
-    const src2Node = createNode('SOURCE2', 'SRC2');
     addChild(rdNode, rd);
     addChild(srcNode, src);
-    addChild(src2Node, src2);
     addChild(node, rdNode);
     addChild(node, srcNode);
-    addChild(node, src2Node);
+    addChild(node, src2);
     return node;
   }
 
@@ -1616,6 +1636,7 @@ set_inst
         }
 
 // Instrucción Store Register (STR)
+// Ejemplo de instrucción STR: STR X0, [X1, #0x10]
 str_inst "Instrucción STR"
     = _* "STR"i _* rd:reg64 _* "," _* src:str_source _* comment? "\n"?
         {
@@ -2628,7 +2649,6 @@ operand32 "Operandor 32 Bits"
             const node = createNode('SOURCE2', 'SRC2');
             addChild(node, i);
             return node;
-        
         }
 
 // Definición de desplazamientos
