@@ -566,7 +566,7 @@ madd_inst
 
 // Instrucciones de negación con multiplicación de 64 y 32 bits (MNEG)
 mneg_inst
-    = _* "MNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
+    = _* "MNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'MNEG');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -576,10 +576,9 @@ mneg_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            addChild(node, src3);
             return node;
         }
-    / _* "MNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
+    / _* "MNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'MNEG');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -589,7 +588,6 @@ mneg_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            addChild(node, src3);
             return node;
         }
 
@@ -2193,7 +2191,7 @@ ccmp_inst
 
 // Instrucción Conditional Increment (CINC)
 cinc_inst
-    = _* "CINC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* l:label _* comment? "\n"?
+    = _* "CINC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CINC');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2202,12 +2200,12 @@ cinc_inst
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
-    / _* "CINC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* l:label _* comment? "\n"?
+    / _* "CINC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CINC');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2216,15 +2214,15 @@ cinc_inst
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
 
 // Instrucción Conditional Invert (CINV)
 cinv_inst
-    = _* "CINV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* l:label _* comment? "\n"?
+    = _* "CINV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CINV');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2233,12 +2231,12 @@ cinv_inst
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
-    / _* "CINV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* l:label _* comment? "\n"?
+    / _* "CINV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CINV');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2247,15 +2245,15 @@ cinv_inst
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
 
 // Instrucción Conditional Negate (CNEG)
 cneg_inst
-    = _* "CNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* l:label _* comment? "\n"?
+    = _* "CNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CNEG');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2264,12 +2262,12 @@ cneg_inst
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
-    / _* "CNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* l:label _* comment? "\n"?
+    / _* "CNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CNEG');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2278,15 +2276,15 @@ cneg_inst
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
 
 // Instrucción Conditional select (CSEL)
 csel_inst
-    = _* "CSEL"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* l:label _* comment? "\n"?
+    = _* "CSEL"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSEL');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2296,12 +2294,12 @@ csel_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
-    / _* "CSEL"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* l:label _* comment? "\n"?
+    / _* "CSEL"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSEL');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2311,65 +2309,65 @@ csel_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
 
 // Instrucción Conditional Set (CSET)
 cset_inst
-    = _* "CSET"i _* rd:reg64 _* "," _* l:label _* comment? "\n"?
+    = _* "CSET"i _* rd:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSET');
             const rdNode = createNode('DESTINATION', 'RD');
             addChild(rdNode, rd);
             addChild(node, rdNode);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
-    / _* "CSET"i _* rd:reg32 _* "," _* l:label _* comment? "\n"?
+    / _* "CSET"i _* rd:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSET');
             const rdNode = createNode('DESTINATION', 'RD');
             addChild(rdNode, rd);
             addChild(node, rdNode);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
 
 // Instrucción Conditional Set Mask (CSETM)
 csetm_inst
-    = _* "CSETM"i _* rd:reg64 _* "," _* l:label _* comment? "\n"?
+    = _* "CSETM"i _* rd:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSETM');
             const rdNode = createNode('DESTINATION', 'RD');
             addChild(rdNode, rd);
             addChild(node, rdNode);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
-    / _* "CSETM"i _* rd:reg32 _* "," _* l:label _* comment? "\n"?
+    / _* "CSETM"i _* rd:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSETM');
             const rdNode = createNode('DESTINATION', 'RD');
             addChild(rdNode, rd);
             addChild(node, rdNode);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
 
 // Instrucción Conditional Select Increment (CSINC)
 csinc_inst
-    = _* "CSINC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* l:label _* comment? "\n"?
+    = _* "CSINC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSINC');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2379,12 +2377,12 @@ csinc_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
-    / _* "CSINC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* l:label _* comment? "\n"?
+    / _* "CSINC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSINC');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2394,15 +2392,98 @@ csinc_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
+            return node;
+        }
+
+// Instrucción para condiciones: EQ, NE, CS, CC, MI, PL, VS, VC, HI, LS, GE, LT, GT, LE, AL y NV
+condition_inst
+    = "EQ"i
+        {
+            const node = createNode('CONDITION', 'EQ');
+            return node;
+        }
+    / "NE"i
+        {
+            const node = createNode('CONDITION', 'NE');
+            return node;
+        }
+    / "CS"i
+        {
+            const node = createNode('CONDITION', 'CS');
+            return node;
+        }
+    / "CC"i
+        {
+            const node = createNode('CONDITION', 'CC');
+            return node;
+        }
+    / "MI"i
+        {
+            const node = createNode('CONDITION', 'MI');
+            return node;
+        }
+    / "PL"i
+        {
+            const node = createNode('CONDITION', 'PL');
+            return node;
+        }
+    / "VS"i
+        {
+            const node = createNode('CONDITION', 'VS');
+            return node;
+        }
+    / "VC"i
+        {
+            const node = createNode('CONDITION', 'VC');
+            return node;
+        }
+    / "HI"i
+        {
+            const node = createNode('CONDITION', 'HI');
+            return node;
+        }
+    / "LS"i
+        {
+            const node = createNode('CONDITION', 'LS');
+            return node;
+        }
+    / "GE"i
+        {
+            const node = createNode('CONDITION', 'GE');
+            return node;
+        }
+    / "LT"i
+        {
+            const node = createNode('CONDITION', 'LT');
+            return node;
+        }
+    / "GT"i
+        {
+            const node = createNode('CONDITION', 'GT');
+            return node;
+        }
+    / "LE"i
+        {
+            const node = createNode('CONDITION', 'LE');
+            return node;
+        }
+    / "AL"i
+        {
+            const node = createNode('CONDITION', 'AL');
+            return node;
+        }
+    / "NV"i
+        {
+            const node = createNode('CONDITION', 'NV');
             return node;
         }
 
 // Instrucción Conditional Select Invert (CSINV)
 csinv_inst
-    = _* "CSINV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* l:label _* comment? "\n"?
+    = _* "CSINV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSINV');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2412,12 +2493,12 @@ csinv_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
-    / _* "CSINV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* l:label _* comment? "\n"?
+    / _* "CSINV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSINV');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2427,15 +2508,15 @@ csinv_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
 
 // Instrucción Conditional Select Negate (CSNEG)
 csneg_inst
-    = _* "CSNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* l:label _* comment? "\n"?
+    = _* "CSNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSNEG');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2445,12 +2526,12 @@ csneg_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
-    / _* "CSNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* l:label _* comment? "\n"?
+    / _* "CSNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
             const node = createNode('INSTRUCTION', 'CSNEG');
             const rdNode = createNode('DESTINATION', 'RD');
@@ -2460,9 +2541,9 @@ csneg_inst
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const labelNode = createNode('LABEL', 'LBL');
-            addChild(labelNode, l);
-            addChild(node, labelNode);
+            const conditionNode = createNode('CONDITION', 'COND');
+            addChild(conditionNode, condition);
+            addChild(node, conditionNode);
             return node;
         }
 
