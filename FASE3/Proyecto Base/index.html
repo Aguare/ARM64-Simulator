@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- =================================== IMPORTACIONES =============================== -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <!-- ================================= ESTILOS BOOSTRAP =========================== -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+    <!--Graph-->
+    <script type="text/javascript" src="js/viz/vis-network.min.js"></script>
+    <script src="js/viz/viz.js"></script>
+    <script src="js/viz/full.render.js"></script>
+    <!-- Scripts for Codemirror -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"
+        integrity="sha512-xwrAU5yhWwdTvvmMNheFn9IyuDbl/Kyghz2J3wQRDR8tyNmT8ZIYOd0V3iPYY/g4XdNPy0n/g0NvqGu9f0fPJQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/mode/simple.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/rust/rust.min.js"
+        integrity="sha512-g3Nhw36S0p4ZJQcky87D5M+vZbFvLrgsHWYltUy5IW0zKbvi8GlPRjJSo2CyUyQiU01Ier7u+rBABDs3BawKyQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Styles for Codemirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css"
+        integrity="sha512-uf06llspW44/LZpHzHT6qBOIVODjWtv4MxCricRxkzvopAlSWnTf6hpZTFxuuZcuNE9CBQhqE0Seu1CoRk84nQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Theme moxer -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/moxer.min.css"
+        integrity="sha512-zrCGHGmTpiZpzVJ6BdiDfsUT6t8+oOKmOtfU82GhBo/7sk/cns7phhKXSWmGH6uACPqgjP8QmgczNBY7HMB9TQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/midnight.min.css"
+     integrity="sha512-ZTF0X2l7PXEFDyP+MSOK0QM3Qh+C+lQ70Tqx4vQb3+6Uxh2lYkwmbSbpDmksZaX8w0sSz8ctVBnPSzAR1TQlzA==" 
+     crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="css/style.css">
+    <title>Simulador ARM</title>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="bar">
+                <nav class="navigation">
+                    <a href="#" class="logo">
+                        <h1 class="logo__name no-margin center-text">--<span class="logo__bold">ARM64 Simulator</span></h1>
+                    </a>
+                    <li>
+                        <a href="#" class="navigation__link">Archivo</a>
+                        <ul>
+                            <li><a href="#" type="button" id="btn__open">Abrir Archivo</a></li>
+                            <li><a href="#" id="btn__save">Guardar Archivo</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="#" class="navigation__link">Reportes</a>
+                        <ul>
+                            <li><a id="" href="#modal1" onclick="getErrors()">Errores</a></li>
+                            <li><a id="" href="#modal2" onclick="graphCST()">Generar Arbol</a></li>
+                            <li><a id="" href="#modal3" onclick="getSymbolsTable()">Tabla de Simbolos</a></li>
+                            <li><a id="" href="#modal4" onclick="getTokens()">Tokens</a></li>
+                        </ul>
+                    </li>
+                </nav>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div id="modal1" class="modalmask">
+            <form action="" autocomplete="off">
+                <div class="modalbox movedown">
+                    <h1 class="center-text">Reporte de Errores</h1>
+                    <table id="errors-report">
+                        <tr>
+                            <th id="noBooks" class="center-text">
+                                No hay Errores
+                            </th>
+                        </tr>
+                    </table>
+                    <a href="#close" title="Close" class="close">&times;</a>
+                    <div id="report" class="report"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="container">
+        <div id="modal2" class="modalmask">
+            <form action="" autocomplete="off">
+                <div  class="modalbox movedown">
+                    <a href="#close" title="Close" class="close" onclick="resetGraph()">&times;</a>
+                    <div class="report" id="mynetwork" >Grafico </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="container">
+        <div id="modal3" class="modalmask">
+            <form action="" autocomplete="off">
+                <div class="modalbox movedown">
+                    <h1 class="center-text">Tabla de Símbolos</h1>
+                    <table id="symb-report">
+                        <tr>
+                            <th id="noBooks" class="center-text">
+                                No hay Simbolos
+                            </th>
+                        </tr>
+                    </table>
+                    <a href="#close" title="Close" class="close">&times;</a>
+                    <div id="report" class="report"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="container">
+        <div id="modal4" class="modalmask">
+            <form action="" autocomplete="off">
+                <div class="modalbox movedown">
+                    <h1 class="center-text">Tabla de Tokens</h1>
+                    <table id="tokens-report">
+                        <tr>
+                            <th id="noBooks" class="center-text">
+                                No hay Simbolos
+                            </th>
+                        </tr>
+                    </table>
+                    <a href="#close" title="Close" class="close">&times;</a>
+                    <div id="report" class="report"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="container containerCompile">
+        <button type="button" class="button" id="btn__analysis">Run</button>
+        <button type="button" class="buttonCL"  id="clearButton" >Clear</button>
+        <div id="contador" class="contador">Tiempo Analisis</div> <!-- Muestra el contador en la página -->
+
+    </div>
+    <div id="tags" class="container containerTags">
+        <div class="tmp">
+        </div>
+    </div>
+    <div class="container columns">
+        <div>
+            <h2>Entrada</h2>
+            <textarea id="editor" placeholder="Enter ARM64 assembly instructions..." ></textarea>
+        </div>
+        <div>
+            <h2>Salida</h2>
+            <textarea  id="console" readonly placeholder="Parsed output will appear here..."></textarea>
+        </div>
+
+
+    </div>
+    <div class="container containerCompile">
+        <div id="imagesL" class="imageL">Ver Reportes en pantalla completa:
+            <button type="button" class="buttonT" id="btn__t">CST</button>
+            <button type="button" class="buttonQ"  id="btn__q" >Cuádruplos</button>
+        </div>
+        
+       
+    </div>
+    <div id="graph"></div>
+        <!-- ============================= PARSER ============================== -->
+        <script src="js/parser/parser.js"></script>
+        <!-- ============================= SCRIPT ============================== -->
+        <script src="js/script.js"></script>
+        <!-- ============================= QUAD ============================== -->
+        <script src="js/structures/quad.js"></script>
+        
+</body>
+
+</html>

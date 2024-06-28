@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualización de Grafo</title>
+    <script src="js/viz/viz.js"></script>
+    <script src="js/viz/full.render.js"></script>
+    <script>
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const dotString = decodeURIComponent(getQueryParam('dot'));
+            const viz = new Viz();
+
+            viz.renderSVGElement(dotString)
+                .then(element => {
+                    document.getElementById('graph').appendChild(element);
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        });
+    </script>
+</head>
+<body>
+    <div id="graph" style="text-align: center;"></div>
+</body>
+</html>
