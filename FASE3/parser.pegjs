@@ -34,6 +34,129 @@
                 return v.toString(16);
             });
         }
+        // Función utilizada para interpretar el código armv8 en base al C3D
+        accept(c3d) {
+            let labels = getLabels(c3d);
+            let variables = getVariables(c3d);
+            let bss = getBss(c3d);
+            let registers = getRegisters();
+            function acceptC3d(c3d) {
+                for(let currentIndex = 0; currentIndex < c3d.length; currentIndex++) {
+                    executeLine(c3d[currentIndex]);
+                }
+            }
+
+            function executeLine(instruction) {
+                console.log(instruction);
+            }
+
+            // Función para obtener las etiquetas de un arreglo de c3d
+            function getLabels(c3d) {
+                let labels = [];
+                for(let i = 0; i < c3d.length; i++) {
+                    if(c3d[i].resultado === '.text') {
+                        labels.push({label: c3d[i].operador1, index: i});
+                    }
+                }
+                return labels;
+            }
+
+            // Función para obtener las variables inicializadas .data de un arreglo de c3d
+            function getVariables(c3d) {
+                let variables = [];
+                for(let i = 0; i < c3d.length; i++) {
+                    if(c3d[i].resultado === '.data') {
+                        variables.push({ variable: c3d[i].operador1, value : c3d[i].operador2, type: c3d[i].operacion });
+                    }
+                }
+                return variables;
+            }
+
+            // Función para obtener las variables no inicializadas .bss de un arreglo de c3d
+            function getBss(c3d) {
+                let bss = [];
+                for(let i = 0; i < c3d.length; i++) {
+                    if(c3d[i].resultado === '.bss') {
+                        bss.push({ variable: c3d[i].operador1, value: '', type: c3d[i].operacion, size: parseInt(c3d[i].operador2, 10) });
+                    }
+                }
+                return bss;
+            }
+
+            function getRegisters() {
+                return [
+                    { register: 'w0', value: 0 },
+                    { register: 'w1', value: 0 },
+                    { register: 'w2', value: 0 },
+                    { register: 'w3', value: 0 },
+                    { register: 'w4', value: 0 },
+                    { register: 'w5', value: 0 },
+                    { register: 'w6', value: 0 },
+                    { register: 'w7', value: 0 },
+                    { register: 'w8', value: 0 },
+                    { register: 'w9', value: 0 },
+                    { register: 'w10', value: 0 },
+                    { register: 'w11', value: 0 },
+                    { register: 'w12', value: 0 },
+                    { register: 'w13', value: 0 },
+                    { register: 'w14', value: 0 },
+                    { register: 'w15', value: 0 },
+                    { register: 'w16', value: 0 },
+                    { register: 'w17', value: 0 },
+                    { register: 'w18', value: 0 },
+                    { register: 'w19', value: 0 },
+                    { register: 'w20', value: 0 },
+                    { register: 'w21', value: 0 },
+                    { register: 'w22', value: 0 },
+                    { register: 'w23', value: 0 },
+                    { register: 'w24', value: 0 },
+                    { register: 'w25', value: 0 },
+                    { register: 'w26', value: 0 },
+                    { register: 'w27', value: 0 },
+                    { register: 'w28', value: 0 },
+                    { register: 'w29', value: 0 },
+                    { register: 'w30', value: 0 },
+                    { register: 'w31', value: 0 },
+                    { register: 'x0', value: 0 },
+                    { register: 'x1', value: 0 },
+                    { register: 'x2', value: 0 },
+                    { register: 'x3', value: 0 },
+                    { register: 'x4', value: 0 },
+                    { register: 'x5', value: 0 },
+                    { register: 'x6', value: 0 },
+                    { register: 'x7', value: 0 },
+                    { register: 'x8', value: 0 },
+                    { register: 'x9', value: 0 },
+                    { register: 'x10', value: 0 },
+                    { register: 'x11', value: 0 },
+                    { register: 'x12', value: 0 },
+                    { register: 'x13', value: 0 },
+                    { register: 'x14', value: 0 },
+                    { register: 'x15', value: 0 },
+                    { register: 'x16', value: 0 },
+                    { register: 'x17', value: 0 },
+                    { register: 'x18', value: 0 },
+                    { register: 'x19', value: 0 },
+                    { register: 'x20', value: 0 },
+                    { register: 'x21', value: 0 },
+                    { register: 'x22', value: 0 },
+                    { register: 'x23', value: 0 },
+                    { register: 'x24', value: 0 },
+                    { register: 'x25', value: 0 },
+                    { register: 'x26', value: 0 },
+                    { register: 'x27', value: 0 },
+                    { register: 'x28', value: 0 },
+                    { register: 'x29', value: 0 },
+                    { register: 'x30', value: 0 },
+                    { register: 'x31', value: 0 },
+                    { register: 'sp', value: 0 },
+                    { register: 'lr', value: 0 },
+                    { register: 'zero', value: 0 }
+                ];
+            }
+
+            acceptC3d(c3d);
+        }
 
         // Función para obtener el código .dot del árbol de sintaxis concreto "CST"
         getDot(node){
