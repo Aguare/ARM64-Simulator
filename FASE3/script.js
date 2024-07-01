@@ -260,7 +260,7 @@ const analysis = async () => {
         let resultado = FASE1.parse(text);
         const errorTableBody = document.querySelector('#error-table tbody');
         errorTableBody.innerHTML = ''; // Clear previous errors
-        consoleEditor.setValue("ENTRADA VALIDA, Su JSON resultante es: \n" + JSON.stringify(resultado));
+        // consoleEditor.setValue("ENTRADA VALIDA, Su JSON resultante es: \n" + JSON.stringify(resultado));
         // console.log(resultado)
         const c3d = resultado.getC3d(resultado);
         console.log(c3d);
@@ -268,6 +268,13 @@ const analysis = async () => {
         accept(c3d);
         console.log('output', output);
         console.log('errors', errors);
+        if(errors.length === 0) {
+            consoleEditor.setValue(output)
+        } else {
+            errors = errors.concat(errors);
+            consoleEditor.setValue(errors);
+            displayErrors(errors);
+        }
         const quarters = resultado.getQuarters(c3d);
         // console.log("QUARTERS:");
         // console.log(quarters);

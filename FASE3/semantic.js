@@ -5,10 +5,12 @@ let registers = [];
 let currentIndex = 0;
 let errors = [];
 let output = '';
+let svcExit = false;
 
 // Funciones de inicialización
 function init(c3d) {
     currentIndex = 0;
+    svcExit = false;
     errors = [];
     output = '';
     labels = getLabels(c3d);
@@ -53,120 +55,155 @@ function getBss(c3d) {
 // Función para obtener los registros
 function getRegisters() {
     return [
-        { register: 'w0', value: 0 },
-        { register: 'w1', value: 0 },
-        { register: 'w2', value: 0 },
-        { register: 'w3', value: 0 },
-        { register: 'w4', value: 0 },
-        { register: 'w5', value: 0 },
-        { register: 'w6', value: 0 },
-        { register: 'w7', value: 0 },
-        { register: 'w8', value: 0 },
-        { register: 'w9', value: 0 },
-        { register: 'w10', value: 0 },
-        { register: 'w11', value: 0 },
-        { register: 'w12', value: 0 },
-        { register: 'w13', value: 0 },
-        { register: 'w14', value: 0 },
-        { register: 'w15', value: 0 },
-        { register: 'w16', value: 0 },
-        { register: 'w17', value: 0 },
-        { register: 'w18', value: 0 },
-        { register: 'w19', value: 0 },
-        { register: 'w20', value: 0 },
-        { register: 'w21', value: 0 },
-        { register: 'w22', value: 0 },
-        { register: 'w23', value: 0 },
-        { register: 'w24', value: 0 },
-        { register: 'w25', value: 0 },
-        { register: 'w26', value: 0 },
-        { register: 'w27', value: 0 },
-        { register: 'w28', value: 0 },
-        { register: 'w29', value: 0 },
-        { register: 'w30', value: 0 },
-        { register: 'w31', value: 0 },
-        { register: 'x0', value: 0 },
-        { register: 'x1', value: 0 },
-        { register: 'x2', value: 0 },
-        { register: 'x3', value: 0 },
-        { register: 'x4', value: 0 },
-        { register: 'x5', value: 0 },
-        { register: 'x6', value: 0 },
-        { register: 'x7', value: 0 },
-        { register: 'x8', value: 0 },
-        { register: 'x9', value: 0 },
-        { register: 'x10', value: 0 },
-        { register: 'x11', value: 0 },
-        { register: 'x12', value: 0 },
-        { register: 'x13', value: 0 },
-        { register: 'x14', value: 0 },
-        { register: 'x15', value: 0 },
-        { register: 'x16', value: 0 },
-        { register: 'x17', value: 0 },
-        { register: 'x18', value: 0 },
-        { register: 'x19', value: 0 },
-        { register: 'x20', value: 0 },
-        { register: 'x21', value: 0 },
-        { register: 'x22', value: 0 },
-        { register: 'x23', value: 0 },
-        { register: 'x24', value: 0 },
-        { register: 'x25', value: 0 },
-        { register: 'x26', value: 0 },
-        { register: 'x27', value: 0 },
-        { register: 'x28', value: 0 },
-        { register: 'x29', value: 0 },
-        { register: 'x30', value: 0 },
-        { register: 'x31', value: 0 },
-        { register: 'sp', value: 0 },
-        { register: 'lr', value: 0 },
-        { register: 'zero', value: 0 }
+        { register: 'w0', value: 0, offset: 0 },
+        { register: 'w1', value: 0, offset: 0 },
+        { register: 'w2', value: 0, offset: 0 },
+        { register: 'w3', value: 0, offset: 0 },
+        { register: 'w4', value: 0, offset: 0 },
+        { register: 'w5', value: 0, offset: 0 },
+        { register: 'w6', value: 0, offset: 0 },
+        { register: 'w7', value: 0, offset: 0 },
+        { register: 'w8', value: 0, offset: 0 },
+        { register: 'w9', value: 0, offset: 0 },
+        { register: 'w10', value: 0, offset: 0 },
+        { register: 'w11', value: 0, offset: 0 },
+        { register: 'w12', value: 0, offset: 0 },
+        { register: 'w13', value: 0, offset: 0 },
+        { register: 'w14', value: 0, offset: 0 },
+        { register: 'w15', value: 0, offset: 0 },
+        { register: 'w16', value: 0, offset: 0 },
+        { register: 'w17', value: 0, offset: 0 },
+        { register: 'w18', value: 0, offset: 0 },
+        { register: 'w19', value: 0, offset: 0 },
+        { register: 'w20', value: 0, offset: 0 },
+        { register: 'w21', value: 0, offset: 0 },
+        { register: 'w22', value: 0, offset: 0 },
+        { register: 'w23', value: 0, offset: 0 },
+        { register: 'w24', value: 0, offset: 0 },
+        { register: 'w25', value: 0, offset: 0 },
+        { register: 'w26', value: 0, offset: 0 },
+        { register: 'w27', value: 0, offset: 0 },
+        { register: 'w28', value: 0, offset: 0 },
+        { register: 'w29', value: 0, offset: 0 },
+        { register: 'w30', value: 0, offset: 0 },
+        { register: 'w31', value: 0, offset: 0 },
+        { register: 'x0', value: 0, offset: 0 },
+        { register: 'x1', value: 0, offset: 0 },
+        { register: 'x2', value: 0, offset: 0 },
+        { register: 'x3', value: 0, offset: 0 },
+        { register: 'x4', value: 0, offset: 0 },
+        { register: 'x5', value: 0, offset: 0 },
+        { register: 'x6', value: 0, offset: 0 },
+        { register: 'x7', value: 0, offset: 0 },
+        { register: 'x8', value: 0, offset: 0 },
+        { register: 'x9', value: 0, offset: 0 },
+        { register: 'x10', value: 0, offset: 0 },
+        { register: 'x11', value: 0, offset: 0 },
+        { register: 'x12', value: 0, offset: 0 },
+        { register: 'x13', value: 0, offset: 0 },
+        { register: 'x14', value: 0, offset: 0 },
+        { register: 'x15', value: 0, offset: 0 },
+        { register: 'x16', value: 0, offset: 0 },
+        { register: 'x17', value: 0, offset: 0 },
+        { register: 'x18', value: 0, offset: 0 },
+        { register: 'x19', value: 0, offset: 0 },
+        { register: 'x20', value: 0, offset: 0 },
+        { register: 'x21', value: 0, offset: 0 },
+        { register: 'x22', value: 0, offset: 0 },
+        { register: 'x23', value: 0, offset: 0 },
+        { register: 'x24', value: 0, offset: 0 },
+        { register: 'x25', value: 0, offset: 0 },
+        { register: 'x26', value: 0, offset: 0 },
+        { register: 'x27', value: 0, offset: 0 },
+        { register: 'x28', value: 0, offset: 0 },
+        { register: 'x29', value: 0, offset: 0 },
+        { register: 'x30', value: 0, offset: 0 },
+        { register: 'x31', value: 0, offset: 0 },
+        { register: 'pc', value: 0, offset: 0 },
+        { register: 'sp', value: 0, offset: 0 },
+        { register: 'lr', value: 0, offset: 0 },
+        { register: 'nzcv', value: 0, offset: 0 }
     ];
 }
 
 // Función para obtener el valor de un operador1 y operador2
 function getValue(operador) {
-    // Eliminarmos # si es que lo tiene
-    operador = operador.replace('#', '');
-    // Si es un número
-    if(!isNaN(operador)) {
-        return parseInt(operador, 10);
-    }
-    // Si es un hexadecimal con una expresión regular
-    if(operador.match(/^[0-9a-fA-F]+$/)) {
-        return parseInt(operador, 16);
-    }
-    // Si es un registro
-    let register = registers.find(r => r.register === operador);
-    if(register) {
-        return register.value;
-    }
-    // Si es un label
-    let label = labels.find(l => l.label === operador);
-    if(label) {
-        return label.index;
-    }
-    // Si es una cadena tipo 'hola'
-    if(operador.startsWith("'") && operador.endsWith("'")) {
-        return operador;
-    }
-    // si es una variable
-    operador = operador.replace('=', '');
-    let variable = variables.find(v => v.variable === operador);
-    if(!variable) {
-        variable = bss.find(v => v.variable === value);
-        if(!variable) {
-            errors.push({error: `No se encontró la variable: ${value}`, type: 'semántico', row: 0, column: 0});
-            return null;
+    // Eliminarmos # si es que lo tiene (verificar si es un string)
+    if(typeof operador === 'string') {
+        operador = operador.replace('#', '');
+        operador = operador.replace('=', '');
+
+        // Si es un número
+        if(!isNaN(operador)) {
+            return parseInt(operador, 10);
+        }
+        // Si es un hexadecimal con una expresión regular
+        if(operador.match(/^[0-9a-fA-F]+$/)) {
+            return parseInt(operador, 16);
+        }
+        // Si es un registro
+        let register = registers.find(r => r.register === operador);
+        if(register) {
+            return register;
+        }
+        // Si es un label
+        let label = labels.find(l => l.label === operador);
+        if(label) {
+            return label.index;
+        }
+        // Si es una cadena tipo 'hola'
+        if(operador.startsWith("'") && operador.endsWith("'")) {
+            return operador;
+        }
+        // Si es un registro con [ ]
+        if(operador.includes('[') && operador.includes(']')) {
+            let rgs = operador.substring(1, operador.length - 1);
+            let values = rgs.split(',');
+            if (values.length === 1) {
+                let reg = registers.find(r => r.register === values[0]);
+                if(reg) {
+                    return reg;
+                }
+            } else if (values.length === 2) {
+                let reg = registers.find(r => r.register === values[0]);
+                if(reg) {
+                    reg.offset = reg.offset + parseInt(values[1], 10);
+                    return reg;
+                }
+            }
+            
+        }
+        // si es una variable en el arreglo de variables
+        let variable = variables.find(v => v.variable === operador);
+        if(variable) {
+            return variable;
+            
+        }
+        
+        // Si es una variable en el arreglo de bss
+        let bssVar = bss.find(v => v.variable === operador);
+        if(bssVar) {
+            return bssVar;
         }
     }
-    return variable
+
+}
+
+// Función para convertir números a caracter ascii
+function numberToChar(number) {
+    return parseInt(number, 10) + 48;
+}
+
+// Función para convertir un caracter ascii a número
+function charToNumber(char) {
+    return String.fromCharCode(parseInt(char, 10));
 
 }
 
 // Función para ejecutar el código c3d
 function accept(c3d) {
     init(c3d);
-    while(currentIndex < c3d.length) {
+    while(currentIndex < c3d.length && !svcExit) {
         executeLine(c3d);
     }
 }
@@ -208,6 +245,33 @@ function executeInstruction(line) {
         case 'SVC':
             svc(line.resultado);
             break;
+        case 'LDR':
+            ldr(line.resultado, line.operador1);
+            break;
+        case 'ADD':
+            add(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'SUB':
+            sub(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'MUL':
+            mul(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'SDIV':
+            sdiv(line.resultado, line.operador1, line.operador2);
+            break
+        case 'LDRB':
+            ldrb(line.resultado, line.operador1);
+            break;
+        case 'UXTB':
+            uxtb(line.resultado, line.operador1);
+            break;
+        case 'AND':
+            and(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'STRB':
+            strb(line.resultado, line.operador1);
+            break;
         default:
             break;
     }
@@ -223,6 +287,8 @@ function mov(register, value) {
     }
 
     if(reg) {
+        if(value.register && value.register.includes('x')) value = value.value;
+        if(value.register && value.register.includes('w')) value = value.value;
         reg.value = value;
     }
 }
@@ -231,7 +297,6 @@ function mov(register, value) {
 // Esta instrucción verifica si el registro x8 tiene un valor 93 para finalizar la ejecución
 // Si el registro x8 tiene un valor de 64 entonces imprime el valor del registro x0
 function svc(value) {
-    console.log('svc', value);
     let x8 = registers.find(r => r.register === 'x8');
     value = getValue(value);
     if(value === null) {
@@ -239,14 +304,166 @@ function svc(value) {
         return;
     }
 
-    if(x8 && x8.value === 93 && value === 0) {
-        let reg = registers.find(r => r.register === 'x0');
-        output += reg.value;
-        currentIndex = 10000;
-    } else if (x8 && x8.value === 64 && value === 0) {
-        let reg = registers.find(r => r.register === 'x0');
-        output += reg.value;
+    let x0 = registers.find(r => r.register === 'x0');
+    // Si el valor es 64 y x0 es 1 entonces se imprime el valor de x0
+    // si el valor de x8 es 93 entonces se finaliza la ejecución
+    // Si el valor de x8 es 63 entonces se lee un valor
+    if(x8 && x8.value === 64 && x0 && x0.value === 1) {
+        let x1 = registers.find(r => r.register === 'x1');
+        let x1Value = getValue(x1.value);
+        output += x1Value.value + '\n';
+    } else if (x8 && x8.value === 93) {
+        output += x0.value + '\n';
+        output += 'Finalizando ejecución';
+        svcExit = true;
+    } else if(x8 && x8.value === 63) {
+        let x1 = registers.find(r => r.register === 'x1');
+        let x1Value = getValue(x1.value);
+        let input = prompt('Ingrese un valor');
+        x1Value.value = input;
     }
 }
 
 // Función para imprimir u obtener algo (input / output) ldr
+function ldr(register, value) {
+    let reg = registers.find(r => r.register === register);
+    value = getValue(value);
+    if(value === null) {
+        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', row: 0, column: 0});
+        return;
+    }
+
+    if(reg) {
+        // Almacenamos el nombre de la variable en el registro (por lo general x1)
+        reg.value = value.variable;
+    }
+
+}
+
+// Función para cargar valores a registros ldrb
+function ldrb(register, value) {
+    let reg = registers.find(r => r.register === register);
+    value = getValue(value);
+    if(value === null) {
+        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', row: 0, column: 0});
+        return;
+    }
+
+    if(reg) {
+        // Almacenamos el nombre de la variable en el registro (por lo general x1)
+        let variable = getValue(value.value);
+        reg.value = variable.value.charAt(value.offset);
+    }
+
+}
+
+// FUNCIONES ARITMÉTICAS
+// Función add
+function add(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg.register.includes('x')) {
+        if (value2.register && value2.register.includes('x')) value2 = value2.value;
+        reg.offset = value1.offset + value2;
+    } else {
+        if (value2.register && value2.register.includes('w')) value2 = value2.value;
+        reg.value = parseInt(value1.value, 10) + parseInt(value2, 10);
+    }
+}
+
+// Función sub
+function sub(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg.register.includes('x')) {
+        if (value2.register && value2.register.includes('x')) value2 = value2.value;
+        reg.value = parseInt(value1.value, 10) - parseInt(value2, 10);
+    } else {
+        if (value2.register && value2.register.includes('w')) value2 = value2.value;
+        reg.value = numberToChar(value1.value) - value2;
+        console.log('reg.value', reg)
+    }
+}
+
+// Función mul PENDIENTE
+function mul(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg.register.includes('x')) {
+        if (value2.register && value2.register.includes('x')) value2 = value2.value;
+        reg.value = parseInt(value1.value, 10) * parseInt(value2, 10);
+    } else {
+        if (value2.register && value2.register.includes('w')) value2 = value2.value;
+        reg.value = numberToChar(value1.value) * numberToChar(value2);
+    }
+}
+
+//Función sdiv
+function sdiv(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg.register.includes('x')) {
+        if (value2.register && value2.register.includes('x')) value2 = value2.value;
+        reg.value = parseInt(value1.value, 10) / parseInt(value2, 10);
+    } else {
+        if (value2.register && value2.register.includes('w')) value2 = value2.value;
+        reg.value = numberToChar(value1.value) / numberToChar(value2);
+    }
+}
+
+// Función udiv
+function udiv(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+
+    if(reg.register.includes('x')) {
+        if (value2.register && value2.register.includes('x')) value2 = value2.value;
+        reg.value = parseInt(value1.value, 10) / parseInt(value2, 10);
+    } else {
+        if (value2.register && value2.register.includes('w')) value2 = value2.value;
+        reg.value = numberToChar(value1.value) / numberToChar(value2);
+    }
+    reg.value = Math.abs(reg.value);
+}
+
+
+// FUNCIONES DE EXTENSIÓN
+// Función de extensión de byte uxtb
+function uxtb(register, value) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(value);
+    if(reg) {
+        reg.value = value1.value;
+    }
+}
+
+// FUNCIONES LÓGICAS
+// Función and
+function and(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg) {
+        if(value2.register && value2.register.includes('x')) value2 = value2.value;
+        if(value2.register && value2.register.includes('w')) value2 = value2.value;
+        if(value1.register && value1.register.includes('x')) value1 = value1.value;
+        if(value1.register && value1.register.includes('w')) value1 = value1.value;
+        reg.value = value1 & value2;
+    }
+}
+
+// Función strb
+function strb(register, value) {
+    let reg = registers.find(r => r.register === register);
+    let variable = getValue(value);
+    let regValue = getValue(variable.value);
+    if(reg) {
+        regValue.value = charToNumber(reg.value);
+        console.log('strb result', regValue);
+    }
+}
