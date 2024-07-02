@@ -268,6 +268,7 @@ const analysis = async () => {
         accept(c3d);
         console.log('output', output);
         console.log('errors', errors);
+        console.log('registers', registers);
         if(errors.length === 0) {
             consoleEditor.setValue(output)
         } else {

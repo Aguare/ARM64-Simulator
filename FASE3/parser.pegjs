@@ -12,11 +12,11 @@
         { operation: 'UMADDL', type:'arithmetic', decompose: ['ADD', 'MUL'] },
         { operation: 'UMNEGL', type:'arithmetic', decompose: ['NEG', 'MUL'] },
         { operation: 'UMSUBL', type:'arithmetic', decompose: ['SUB', 'MUL'] },
-        { operation: 'CSEL', type:'conditional', decompose: ['MOV', 'MOV', 'CMP'] },
-        { operation: 'CINC', type:'conditional', decompose: ['ADD', 'MOV', 'CMP'] },
-        { operation: 'CSINC', type:'conditional', decompose: ['ADD', 'MOV', 'CMP'] },
-        { operation: 'CSINV', type:'conditional', decompose: ['NEG', 'NEG', 'CMP'] },
-        { operation: 'CSNEG', type:'conditional', decompose: ['MOV', 'NEG', 'CMP'] }
+        { operation: 'CSEL', type:'conditional', decompose: ['MOV', 'MOV', 'B'] },
+        { operation: 'CINC', type:'conditional', decompose: ['ADD', 'MOV', 'B'] },
+        { operation: 'CSINC', type:'conditional', decompose: ['ADD', 'MOV', 'B'] },
+        { operation: 'CSINV', type:'conditional', decompose: ['NEG', 'NEG', 'B'] },
+        { operation: 'CSNEG', type:'conditional', decompose: ['MOV', 'NEG', 'B'] }
     ];
     // Clase para representar un nodo del árbol de sintaxis concreto "CST"
     class ASTnode{
@@ -196,6 +196,7 @@
         getC3d(node){
             let instructions = [];
             let temporalCounter = 1;
+            let temporalLabel = 1;
             let temporalRegister = "x10";
             let currentDirective = '';
             let sectionScope = false;
@@ -239,18 +240,34 @@
                             // temporalCounter++;
                             instruction.operador2 = temporalRegister;
                         } else if (operation && operation.type === 'conditional') {
-                            const temp1 = { resultado: '', operador1: node.children[3].children[0].value, operador2: '', operacion: operation.decompose[operation.decompose.length - 1] };
-                            instructions.push(temp1);
-                            instruction.operacion = operation.decompose[0];
-                            instruction.resultado = node.children[0].children[0].value;
-                            instruction.operador1 = node.children[1].children[0].value;
-                            instruction.operador2 = ''
-                            let instruction2 = { resultado: '', operador1: '', operador2: '', operacion: '' };
-                            instruction2.operacion = operation.decompose[1];
-                            instruction2.resultado = node.children[0].children[0].value;
-                            instruction2.operador1 = node.children[2].children[0].value;
-                            instruction2.operador2 = ''
-                            instructions.push(instruction2);
+                            // Para las operaciones condicionales las descompondremos de la siguiente manera:
+                            /*
+                                Supongamos que tenemos la siguiente instrucción
+                                CSEL w7, w5, w6, eq
+                                Se descompone en:
+                                BEQ temporal_label_1
+                                MOV w7, w6
+                                B temporal_label_2
+                                temporal_label_1:
+                                MOV w7, w5
+                                temporal_label_2:
+                                la operación beq se obtiene de concatenar la operación con 'B' con el children[3].value
+                                Las operaciones se encuentran en el arreglo operations en el arreglo decompose (B se encuentra al final del arreglo decompose)
+                            */
+                            const tempLabel1 = { resultado: '.text', operador1: 'temporal_label_' + temporalLabel, operador2: '', operacion: '' };
+                            const tempLabel2 = { resultado: '.text', operador1: 'temporal_label_' + (temporalLabel + 1), operador2: '', operacion: '' };
+                            const bop = { resultado: 'temporal_label_' + temporalLabel, operador1: '', operador2: '', operacion: 'B' + node.children[3].children[0].value };
+                            const bop2 = { resultado: 'temporal_label_' + (temporalLabel + 1), operador1: '', operador2: '', operacion: 'B' };
+                            const trueOp = { resultado: node.children[0].children[0].value, operador1: node.children[2].children[0].value, operador2: '', operacion: operation.decompose[1] };
+                            const falseOp = { resultado: node.children[0].children[0].value, operador1: node.children[1].children[0].value, operador2: '', operacion: operation.decompose[0] };
+                            instructions.push(bop);
+                            instructions.push(falseOp)
+                            instructions.push(bop2);
+                            instructions.push(tempLabel1);
+                            instructions.push(trueOp);
+                            instructions.push(tempLabel2);
+                            temporalLabel += 2;
+
                         }
                     } else {
                         for(let i = 0; i < node.children.length; i++) {
@@ -263,13 +280,6 @@
                                 }
                             }
                             if(i === 2) {
-                                if(node.children[i].children[0].value === '[]') {
-                                    instruction.operador2 = getValues(node.children[i].children[0].children);
-                                } else {
-                                    instruction.operador2 = node.children[i].children[0].value;
-                                }
-                            }
-                            if(i === 3) {
                                 if(node.children[i].children[0].value === '[]') {
                                     instruction.operador2 = getValues(node.children[i].children[0].children);
                                 } else {

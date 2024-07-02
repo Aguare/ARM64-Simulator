@@ -122,7 +122,10 @@ function getRegisters() {
         { register: 'pc', value: 0, offset: 0 },
         { register: 'sp', value: 0, offset: 0 },
         { register: 'lr', value: 0, offset: 0 },
-        { register: 'nzcv', value: 0, offset: 0 }
+        { register: 'N', value: 0, offset: 0 },
+        { register: 'Z', value: 0, offset: 0 },
+        { register: 'C', value: 0, offset: 0 },
+        { register: 'V', value: 0, offset: 0 }
     ];
 }
 
@@ -133,10 +136,19 @@ function getValue(operador) {
         operador = operador.replace('#', '');
         operador = operador.replace('=', '');
 
+        // Si es un binario con una expresión regular que comienza con 0b
+        if(operador.startsWith("0b")) {
+            let bin = parseInt(operador.substring(2), 2);
+            console.log('binario', bin)
+            return parseInt(operador.substring(2), 2);
+        }
+
         // Si es un número
         if(!isNaN(operador)) {
+            console.log('numero')
             return parseInt(operador, 10);
         }
+
         // Si es un hexadecimal con una expresión regular
         if(operador.match(/^[0-9a-fA-F]+$/)) {
             return parseInt(operador, 16);
@@ -162,13 +174,15 @@ function getValue(operador) {
             if (values.length === 1) {
                 let reg = registers.find(r => r.register === values[0]);
                 if(reg) {
-                    return reg;
+                    let clone = Object.assign({}, reg);
+                    return clone;
                 }
             } else if (values.length === 2) {
                 let reg = registers.find(r => r.register === values[0]);
                 if(reg) {
-                    reg.offset = reg.offset + parseInt(values[1], 10);
-                    return reg;
+                    let clone = Object.assign({}, reg);
+                    clone.offset = parseInt(values[1], 10) + values[2];
+                    return clone;
                 }
             }
             
@@ -197,7 +211,23 @@ function numberToChar(number) {
 // Función para convertir un caracter ascii a número
 function charToNumber(char) {
     return String.fromCharCode(parseInt(char, 10));
+}
 
+// Función para actualizar las banderas
+function updateFlags(result) {
+    // Obteniendo las flags
+    let N = registers.find(r => r.register === 'N');
+    let Z = registers.find(r => r.register === 'Z');
+    let C = registers.find(r => r.register === 'C');
+    let V = registers.find(r => r.register === 'V');
+    // N
+    N.value = result < 0 ? 1 : 0;
+    // Z
+    Z.value = result === 0 ? 1 : 0;
+    // C
+    C.value = result >= 0 ? 1 : 0;
+    // V
+    V.value = 0;
 }
 
 // Función para ejecutar el código c3d
@@ -260,6 +290,15 @@ function executeInstruction(line) {
         case 'SDIV':
             sdiv(line.resultado, line.operador1, line.operador2);
             break
+        case 'UDIV':
+            udiv(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'ADDS':
+            adds(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'SUBS':
+            subs(line.resultado, line.operador1, line.operador2);
+            break
         case 'LDRB':
             ldrb(line.resultado, line.operador1);
             break;
@@ -269,8 +308,59 @@ function executeInstruction(line) {
         case 'AND':
             and(line.resultado, line.operador1, line.operador2);
             break;
+        case 'ORR':
+            orr(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'EOR':
+            eor(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'ANDS':
+            ands(line.resultado, line.operador1, line.operador2);
+            break;
         case 'STRB':
             strb(line.resultado, line.operador1);
+            break;
+        case 'ASR':
+            asr(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'LSR':
+            lsr(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'LSL':
+            lsl(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'ASL':
+            asl(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'ROR':
+            ror(line.resultado, line.operador1, line.operador2);
+            break;
+        case 'CMP':
+            cmp(line.resultado, line.operador1);
+            break;
+        case 'B':
+            b(line.resultado);
+            break;
+        case 'BL':
+            bl(line.resultado);
+            break;
+        case 'BEQ':
+            beq(line.resultado);
+            break;
+        case 'BNE':
+            bne(line.resultado);
+            break;
+        case 'BLT':
+            blt(line.resultado);
+            break;
+        case 'BLE':
+            ble(line.resultado);
+            break;
+        case 'BGT':
+            bgt(line.resultado);
+            break;
+        case 'BGE':
+            bge(line.resultado);
             break;
         default:
             break;
@@ -278,7 +368,7 @@ function executeInstruction(line) {
 }
 
 function mov(register, value) {
-    console.log('mov', register);
+    console.log('mov', register, value);
     let reg = registers.find(r => r.register === register);
     value = getValue(value);
     if(value === null) {
@@ -313,7 +403,7 @@ function svc(value) {
         let x1Value = getValue(x1.value);
         output += x1Value.value + '\n';
     } else if (x8 && x8.value === 93) {
-        output += x0.value + '\n';
+        output += x0.value + ' ' + x0.offset + '\n';
         output += 'Finalizando ejecución';
         svcExit = true;
     } else if(x8 && x8.value === 63) {
@@ -431,6 +521,20 @@ function udiv(register, op1, op2) {
     reg.value = Math.abs(reg.value);
 }
 
+// Funciones aritméticas que actualizan las banderas
+// Función adds
+function adds(register, op1, op2) {
+    add(register, op1, op2);
+    let reg = registers.find(r => r.register === register);
+    updateFlags(reg.value);
+}
+
+// Función subs
+function subs(register, op1, op2) {
+    sub(register, op1, op2);
+    let reg = registers.find(r => r.register === register);
+    updateFlags(reg.value);
+}
 
 // FUNCIONES DE EXTENSIÓN
 // Función de extensión de byte uxtb
@@ -457,6 +561,144 @@ function and(register, op1, op2) {
     }
 }
 
+// Función orr
+function orr(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg) {
+        if(value2.register && value2.register.includes('x')) value2 = value2.value;
+        if(value2.register && value2.register.includes('w')) value2 = value2.value;
+        if(value1.register && value1.register.includes('x')) value1 = value1.value;
+        if(value1.register && value1.register.includes('w')) value1 = value1.value;
+        reg.value = value1 | value2;
+    }
+}
+
+// Función eor
+function eor(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg) {
+        if(value2.register && value2.register.includes('x')) value2 = value2.value;
+        if(value2.register && value2.register.includes('w')) value2 = value2.value;
+        if(value1.register && value1.register.includes('x')) value1 = value1.value;
+        if(value1.register && value1.register.includes('w')) value1 = value1.value;
+        reg.value = value1 ^ value2;
+    }
+}
+
+// Función mvn
+function mvn(register, value) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(value);
+    if(reg) {
+        if(value1.register && value1.register.includes('x')) value1 = value1.value;
+        if(value1.register && value1.register.includes('w')) value1 = value1.value;
+        reg.value = ~value1;
+    }
+}
+
+// Funciones lógicas que actualizan las banderas
+// Función ands
+function ands(register, op1, op2) {
+    and(register, op1, op2);
+    let reg = registers.find(r => r.register === register);
+    updateFlags(reg.value);
+}
+
+// FUNCIONES RELACIONALES
+// Función cmp
+function cmp(register, value) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(value);
+    if(reg) {
+        if(value1.register && value1.register.includes('x')) value1 = value1.value;
+        if(value1.register && value1.register.includes('w')) value1 = value1.value;
+        let result = reg.value - value1;
+        updateFlags(result);
+    }
+}
+
+// Función b
+function b(label) {
+    let l = labels.find(l => l.label === label);
+    if(l) {
+        currentIndex = l.index;
+    }
+}
+
+// Función bl
+function bl(label) {
+    let l = labels.find(l => l.label === label);
+    if(l) {
+        let lr = registers.find(r => r.register === 'lr');
+        lr.value = currentIndex;
+        currentIndex = l.index;
+    }
+}
+
+// Función beq
+function beq(label) {
+    let l = labels.find(l => l.label === label);
+    let z = registers.find(r => r.register === 'Z');
+    if(l && z && z.value === 1) {
+        currentIndex = l.index;
+    }
+}
+
+// Función bne
+function bne(label) {
+    let l = labels.find(l => l.label === label);
+    let z = registers.find(r => r.register === 'Z');
+    if(l && z && z.value === 0) {
+        currentIndex = l.index;
+    }
+}
+
+// Función blt
+function blt(label) {
+    let l = labels.find(l => l.label === label);
+    let n = registers.find(r => r.register === 'N');
+    let v = registers.find(r => r.register === 'V');
+    if(l && n && n.value !== v.value) {
+        currentIndex = l.index;
+    }
+}
+
+// Función ble
+function ble(label) {
+    let l = labels.find(l => l.label === label);
+    let n = registers.find(r => r.register === 'N');
+    let v = registers.find(r => r.register === 'V');
+    let z = registers.find(r => r.register === 'Z');
+    if(l && (z.value === 1 || n.value !== v.value)) {
+        currentIndex = l.index;
+    }
+}
+
+// Función bgt
+function bgt(label) {
+    let l = labels.find(l => l.label === label);
+    let n = registers.find(r => r.register === 'N');
+    let v = registers.find(r => r.register === 'V');
+    let z = registers.find(r => r.register === 'Z');
+    if(l && (z.value === 0 && n.value === v.value)) {
+        currentIndex = l.index;
+    }
+}
+
+// Función bge
+function bge(label) {
+    let l = labels.find(l => l.label === label);
+    let n = registers.find(r => r.register === 'N');
+    let v = registers.find(r => r.register === 'V');
+    if(l && n.value === v.value) {
+        currentIndex = l.index;
+    }
+}
+
 // Función strb
 function strb(register, value) {
     let reg = registers.find(r => r.register === register);
@@ -467,3 +709,57 @@ function strb(register, value) {
         console.log('strb result', regValue);
     }
 }
+
+// FUNCIONES DE DESPLAZAMIENTO
+
+// Función para desplazar a la derecha dos bits
+function asr(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    console.log('asr', value1, value2);
+    if(reg) {
+        reg.value = value1 >> value2;
+    }
+}
+
+// Función para desplazar a la derecha un bit
+function lsr(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg) {
+        reg.value = value1 >> value2;
+    }
+}
+
+// Función para desplazar a la izquierda un bit
+function lsl(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg) {
+        reg.value = value1 << value2;
+    }
+}
+
+// Función para desplazar a la izquierda dos bits
+function asl(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg) {
+        reg.value = value1 << value2;
+    }
+}
+
+// Función para rotar a la derecha
+function ror(register, op1, op2) {
+    let reg = registers.find(r => r.register === register);
+    let value1 = getValue(op1);
+    let value2 = getValue(op2);
+    if(reg) {
+        reg.value = (value1 >> value2) | (value1 << (32 - value2));
+    }
+}
+
