@@ -48,19 +48,19 @@
                                 title="New Tab">
                                 <i class="fas fa-plus"></i> New Tab
                             </button>
-                            <button class="btn" id="btn__cst" title="Generate CST">
-                                <i class="fas fa-sitemap"></i> CST
+                            <button class="btn" id="btn__clean"
+                            title="Clear Editor">
+                            <i class="fas fa-broom"></i> Clear
                             </button>
+                            <button class="btn" id="btn__analysis"
+                            title="Analysis">
+                            <i class="fas fa-play"></i> Run
+                        </button>
                         </div>
                         <h3 class="nav-title">Fase 1 - OLC2</h3>
                         <div class="flex items-center">
-                            <button class="btn" id="btn__analysis"
-                                title="Analysis">
-                                <i class="fas fa-play"></i> Run
-                            </button>
-                            <button class="btn" id="btn__clean"
-                                title="Clear Editor">
-                                <i class="fas fa-broom"></i> Clear
+                            <button class="btn" id="btn__cst" title="Generate CST">
+                                <i class="fas fa-sitemap"></i> CST
                             </button>
                             <button class="btn" id="btn__showC3dTable"
                                 title="Show C3D Table">
@@ -70,7 +70,12 @@
                                 title="Show Quarters Table">
                                 <i class="fas fa-table"></i> C4 Table
                             </button>
-
+                            <button class="btn" id="btn__debug" title="Debug">
+                                <i class="fas fa-bug"></i> Debug
+                            </button>
+                            <button class="btn" id="btn__nextLine" title="Next Line">
+                                <i class="fas fa-arrow-right"></i> Next Line
+                            </button>
                         </div>
                     </nav>
                     <ul class="tab-nav" id="tab-nav">
@@ -105,7 +110,21 @@
                     </div>
                 </div>
             </div>
-
+            
+            <div class="container">
+                <div class="flex flex-col md:flex-row">
+                    <div class="w-full md:w-1/2 p-4">
+                        <!-- Register Table Container -->
+                        <div class="error-container">
+                            <h3 id="registerTableTitle" class="hidden">Tabla de Registros</h3>
+                            <div id="registerTableContainer" class="register-table-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            
+            
             <div class="error-container">
                 <h3>Errores Detectados</h3>
                 <table id="error-table">

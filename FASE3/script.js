@@ -249,6 +249,8 @@ const displayErrors = (errors) => {
     });
 };
 
+
+
 const analysis = async () => {
     const activeTabId = getActiveTabId();
     const activeConsoleTabId = getActiveConsoleTabId();
@@ -295,32 +297,9 @@ const analysis = async () => {
     const endTime = performance.now();
     const executionTime = endTime - startTime;
     document.getElementById('execution-time').innerText = executionTime.toFixed(2);
+    showRegisterTable();
 };
-/*const analysis = async () => {
-    const activeTabId = getActiveTabId();
-    const activeConsoleTabId = getActiveConsoleTabId();
-    const editor = editors[activeTabId];
-    const consoleEditor = consoles[activeConsoleTabId];
-    const text = editor.getValue();
-    try {
-        let resultado = FASE1.parse(text);
-        consoleEditor.setValue("ENTRADA VALIDA, Su JSON resultante es: \n"+JSON.stringify(resultado))
-    } catch (error) {
-        console.log(FASE1)
-        if (error instanceof FASE1.SyntaxError) {
-            if (isLexicalError(error)) {
-                consoleEditor.setValue('ERROR LÉXICO!, Carácter no reconocido: ' + `Location: Line ${error.location.start.line}, Column ${error.location.start.column} `+error.message);
-                console.log(error.message)
-            } else {
-                consoleEditor.setValue('ERROR SINTÁCTICO: ' + `Location: Line ${error.location.start.line}, Column ${error.location.start.column} `+error.message);
-                //console.error(`Location: Line ${error.location.start.line}, Column ${error.location.start.column}`);
-                console.log(error.message)
-            }
-        } else {
-            console.error('Error desconocido:', error);
-        }
-    }
-};*/
+
 
 function isLexicalError(e) {
     const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
@@ -527,3 +506,99 @@ function generateCST() {
         alert('Error generando el CST: ' + error.message);
     }
 }
+//Mostrar registros 
+function showRegisterTable() {
+    const tableContainer = document.getElementById('registerTableContainer');
+    tableContainer.innerHTML = ''; // Limpiar tabla existente
+
+    let table = document.createElement('table');
+    table.className = 'c3d-table';
+    let thead = table.createTHead();
+    let tbody = table.createTBody();
+
+    // Encabezados de la tabla
+    let headerRow = thead.insertRow();
+    ['Variable', 'Tipo', 'Valor'].forEach(headerText => {
+        let headerCell = document.createElement('th');
+        headerCell.textContent = headerText;
+        headerRow.appendChild(headerCell);
+    });
+
+    // Filas de la tabla para variables
+    variables.forEach(variable => {
+        let row = tbody.insertRow();
+        [variable.variable, variable.type, variable.value].forEach(text => {
+            let cell = row.insertCell();
+            cell.textContent = text;
+        });
+    });
+
+    // Filas de la tabla para bss
+    bss.forEach(variable => {
+        let row = tbody.insertRow();
+        [variable.variable, variable.type, variable.size].forEach(text => {
+            let cell = row.insertCell();
+            cell.textContent = text;
+        });
+    });
+
+    // Filas de la tabla para registros
+    registers.forEach(register => {
+        let row = tbody.insertRow();
+        [register.register, 'Registro', register.value].forEach(text => {
+            let cell = row.insertCell();
+            cell.textContent = text;
+        });
+    });
+
+    tableContainer.appendChild(table);
+    document.getElementById('registerTableTitle').classList.remove('hidden');
+}
+
+document.getElementById('btn__analysis').addEventListener('click', () => {
+    analysis();
+    showRegisterTable();
+});
+
+// mostrar Debug 
+let c3dGlobal = null; // Variable para almacenar c3d globalmente
+
+document.getElementById('btn__debug').addEventListener('click', () => {
+    const activeTabId = getActiveTabId();
+    const editor = editors[activeTabId];
+    const text = editor.getValue();
+    try {
+        let resultado = FASE1.parse(text);
+        c3dGlobal = resultado.getC3d(resultado);
+        debug(c3dGlobal);
+        console.log('Debugging started:', c3dGlobal);
+        const consoleEditor = consoles[getActiveConsoleTabId()];
+        //consoleEditor.setValue('Debugging started. C3D generated: \n' + JSON.stringify(c3dGlobal, null, 2));
+    } catch (error) {
+        console.error('Error during parsing:', error);
+        const consoleEditor = consoles[getActiveConsoleTabId()];
+        consoleEditor.setValue('Error during parsing: ' + error.message);
+    }
+});
+
+//mostrar next line 
+document.getElementById('btn__nextLine').addEventListener('click', () => {
+    if (c3dGlobal) {
+        try {
+            executeLine(c3dGlobal);
+            console.log('Executed line:', c3dGlobal[currentIndex - 1]);
+            const consoleEditor = consoles[getActiveConsoleTabId()];
+            consoleEditor.setValue(consoleEditor.getValue() + '\nExecuted line: ' +JSON.stringify(c3dGlobal[currentIndex - 1], null, 2));
+        } catch (error) {
+            console.error('Error during execution:', error);
+            const consoleEditor = consoles[getActiveConsoleTabId()];
+           consoleEditor.setValue(consoleEditor.getValue() + '\nError during execution: ' + error.message);
+        }
+    } else {
+        console.error('No C3D available. Please start debugging first.');
+        const consoleEditor = consoles[getActiveConsoleTabId()];
+        consoleEditor.setValue('No C3D available. Please start debugging first.');
+    }
+});
+
+
