@@ -120,8 +120,24 @@
                             <div id="registerTableContainer" class="register-table-container"></div>
                         </div>
                     </div>
+                    <div class="w-full md:w-1/2 p-4">
+                        <!-- Nuevo Contenedor para Debug Console y Output -->
+                        <div class="flex flex-row">
+                            <div class="debug-container w-2/3 p-2">
+                                <h3>Consola de Debug</h3>
+                                <textarea id="debug-console" class="CodeMirror"></textarea>
+                            </div>
+                            <div class="output-container w-1/3 p-2">
+                                <h3>Output</h3>
+                                <textarea id="output-console" readonly></textarea>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+            
+            
+            
             
             
             
@@ -173,6 +189,8 @@
         <script src="parser.js"></script>
         <!-- ============================= SCRIPT ============================== -->
         <script src="script.js"></script>
+
+        <script src="sope.js"></script>
 
     </body>
 </html>

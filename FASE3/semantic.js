@@ -369,6 +369,7 @@ function executeInstruction(line) {
 
 function mov(register, value) {
     console.log('mov', register, value);
+    updateOutConsole('asignar', register,'=', value)
     let reg = registers.find(r => r.register === register);
     value = getValue(value);
     if(value === null) {
@@ -393,7 +394,6 @@ function svc(value) {
         errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', row: 0, column: 0});
         return;
     }
-
     let x0 = registers.find(r => r.register === 'x0');
     // Si el valor es 64 y x0 es 1 entonces se imprime el valor de x0
     // si el valor de x8 es 93 entonces se finaliza la ejecución
@@ -402,15 +402,19 @@ function svc(value) {
         let x1 = registers.find(r => r.register === 'x1');
         let x1Value = getValue(x1.value);
         output += x1Value.value + '\n';
+        updateOutConsole('imprimir', x8.value,'=', 'x8')
+        updateOutConsole('imprimir', x0.value,'=', 'x0')
     } else if (x8 && x8.value === 93) {
         output += x0.value + ' ' + x0.offset + '\n';
         output += 'Finalizando ejecución';
         svcExit = true;
+        updateOutConsole('finalizar', x8.value,'=', 'x8')
     } else if(x8 && x8.value === 63) {
         let x1 = registers.find(r => r.register === 'x1');
         let x1Value = getValue(x1.value);
         let input = prompt('Ingrese un valor');
         x1Value.value = input;
+        updateOutConsole('leer', x8.value,'=', 'x8')
     }
 }
 
@@ -418,6 +422,7 @@ function svc(value) {
 function ldr(register, value) {
     let reg = registers.find(r => r.register === register);
     value = getValue(value);
+    
     if(value === null) {
         errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', row: 0, column: 0});
         return;
@@ -426,6 +431,7 @@ function ldr(register, value) {
     if(reg) {
         // Almacenamos el nombre de la variable en el registro (por lo general x1)
         reg.value = value.variable;
+        updateOutConsole('imprimir', register,'=',value.variable )
     }
 
 }
@@ -443,6 +449,7 @@ function ldrb(register, value) {
         // Almacenamos el nombre de la variable en el registro (por lo general x1)
         let variable = getValue(value.value);
         reg.value = variable.value.charAt(value.offset);
+        updateOutConsole('leer', register,'=', reg.value )
     }
 
 }
@@ -453,12 +460,17 @@ function add(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1,'+',op2)
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
         reg.offset = value1.offset + value2;
+        //updateOutputConsoleOP(register,op1,'+',op2)
+        updateOutConsole('SUMA',register,'=', reg.offset )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
         reg.value = parseInt(value1.value, 10) + parseInt(value2, 10);
+        //updateOutputConsoleOP(register,op1,'+',op2)
+        updateOutConsole('SUMA',register,'=', reg.value )
     }
 }
 
@@ -467,13 +479,16 @@ function sub(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1,'-',op2)
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
         reg.value = parseInt(value1.value, 10) - parseInt(value2, 10);
+        updateOutConsole('RESTA',register,'=', reg.value )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
         reg.value = numberToChar(value1.value) - value2;
-        console.log('reg.value', reg)
+        console.log('reg.value', reg);
+        updateOutConsole('RESTA',register,'=', reg.value )
     }
 }
 
@@ -482,12 +497,15 @@ function mul(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1,'*',op2)
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
         reg.value = parseInt(value1.value, 10) * parseInt(value2, 10);
+        updateOutConsole('MUL',register,'=', reg.value )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
         reg.value = numberToChar(value1.value) * numberToChar(value2);
+        updateOutConsole('MUL',register,'=', reg.value )
     }
 }
 
@@ -496,12 +514,15 @@ function sdiv(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1,'/',op2)
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
         reg.value = parseInt(value1.value, 10) / parseInt(value2, 10);
+        updateOutConsole('SDIV',register,'=', reg.value )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
         reg.value = numberToChar(value1.value) / numberToChar(value2);
+        updateOutConsole('SDIV',register,'=', reg.value )
     }
 }
 
@@ -510,13 +531,15 @@ function udiv(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
-
+    updateOutputConsoleOP(register,op1,'/',op2)
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
         reg.value = parseInt(value1.value, 10) / parseInt(value2, 10);
+        updateOutConsole('UDiV',register,'=', reg.value )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
         reg.value = numberToChar(value1.value) / numberToChar(value2);
+        updateOutConsole('UDIV',register,'=', reg.value )
     }
     reg.value = Math.abs(reg.value);
 }
@@ -527,6 +550,8 @@ function adds(register, op1, op2) {
     add(register, op1, op2);
     let reg = registers.find(r => r.register === register);
     updateFlags(reg.value);
+    updateOutputConsoleOP(register,op1,'=>',op2)
+    updateOutConsole('ADDs',register,'=', reg.value )
 }
 
 // Función subs
@@ -534,6 +559,8 @@ function subs(register, op1, op2) {
     sub(register, op1, op2);
     let reg = registers.find(r => r.register === register);
     updateFlags(reg.value);
+    updateOutputConsoleOP(register,op1,'=>',op2)
+    updateOutConsole('SUBs',register,'=', reg.value )
 }
 
 // FUNCIONES DE EXTENSIÓN
@@ -543,6 +570,7 @@ function uxtb(register, value) {
     let value1 = getValue(value);
     if(reg) {
         reg.value = value1.value;
+        updateOutConsole('uxtb',register,'=', reg.value )
     }
 }
 
@@ -552,12 +580,14 @@ function and(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1,'&&',op2)
     if(reg) {
         if(value2.register && value2.register.includes('x')) value2 = value2.value;
         if(value2.register && value2.register.includes('w')) value2 = value2.value;
         if(value1.register && value1.register.includes('x')) value1 = value1.value;
         if(value1.register && value1.register.includes('w')) value1 = value1.value;
         reg.value = value1 & value2;
+        updateOutConsole('funcionAND',register,'=', reg.value )
     }
 }
 
@@ -566,12 +596,14 @@ function orr(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1,'||',op2)
     if(reg) {
         if(value2.register && value2.register.includes('x')) value2 = value2.value;
         if(value2.register && value2.register.includes('w')) value2 = value2.value;
         if(value1.register && value1.register.includes('x')) value1 = value1.value;
         if(value1.register && value1.register.includes('w')) value1 = value1.value;
         reg.value = value1 | value2;
+        updateOutConsole('funcionAND',register,'=', reg.value )
     }
 }
 
@@ -580,12 +612,14 @@ function eor(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1,'^^',op2)
     if(reg) {
         if(value2.register && value2.register.includes('x')) value2 = value2.value;
         if(value2.register && value2.register.includes('w')) value2 = value2.value;
         if(value1.register && value1.register.includes('x')) value1 = value1.value;
         if(value1.register && value1.register.includes('w')) value1 = value1.value;
         reg.value = value1 ^ value2;
+        updateOutConsole('funcionEOR',register,'=', reg.value )
     }
 }
 
@@ -597,6 +631,7 @@ function mvn(register, value) {
         if(value1.register && value1.register.includes('x')) value1 = value1.value;
         if(value1.register && value1.register.includes('w')) value1 = value1.value;
         reg.value = ~value1;
+        updateOutConsole('funcionMVN',register,'=', reg.value )
     }
 }
 
@@ -606,6 +641,9 @@ function ands(register, op1, op2) {
     and(register, op1, op2);
     let reg = registers.find(r => r.register === register);
     updateFlags(reg.value);
+    updateOutputConsoleOP(register,op1,'=>',op2)
+    updateOutConsole('FLBands',register,'=', reg.value )
+
 }
 
 // FUNCIONES RELACIONALES
@@ -618,12 +656,14 @@ function cmp(register, value) {
         if(value1.register && value1.register.includes('w')) value1 = value1.value;
         let result = reg.value - value1;
         updateFlags(result);
+        updateOutConsole('FuncionCMP',register,'=', result )
     }
 }
 
 // Función b
 function b(label) {
     let l = labels.find(l => l.label === label);
+    updateOutConsole('FuncionB',label,'=', l )
     if(l) {
         currentIndex = l.index;
     }
@@ -636,6 +676,7 @@ function bl(label) {
         let lr = registers.find(r => r.register === 'lr');
         lr.value = currentIndex;
         currentIndex = l.index;
+        updateOutConsole('FuncionBL',label,'=', lr.value )
     }
 }
 
@@ -645,6 +686,7 @@ function beq(label) {
     let z = registers.find(r => r.register === 'Z');
     if(l && z && z.value === 1) {
         currentIndex = l.index;
+        updateOutConsole('FuncionBEQ',label,'_', currentIndex)
     }
 }
 
@@ -654,6 +696,7 @@ function bne(label) {
     let z = registers.find(r => r.register === 'Z');
     if(l && z && z.value === 0) {
         currentIndex = l.index;
+        updateOutConsole('FuncionBNE',label,'_',currentIndex )
     }
 }
 
@@ -664,6 +707,7 @@ function blt(label) {
     let v = registers.find(r => r.register === 'V');
     if(l && n && n.value !== v.value) {
         currentIndex = l.index;
+        updateOutConsole('FuncionBLT',label,'_',currentIndex )
     }
 }
 
@@ -675,6 +719,7 @@ function ble(label) {
     let z = registers.find(r => r.register === 'Z');
     if(l && (z.value === 1 || n.value !== v.value)) {
         currentIndex = l.index;
+        updateOutConsole('FuncionBLE',label,'_',currentIndex )
     }
 }
 
@@ -686,6 +731,8 @@ function bgt(label) {
     let z = registers.find(r => r.register === 'Z');
     if(l && (z.value === 0 && n.value === v.value)) {
         currentIndex = l.index;
+        updateOutConsole('FuncionBGT',label,'_',currentIndex )
+
     }
 }
 
@@ -696,6 +743,8 @@ function bge(label) {
     let v = registers.find(r => r.register === 'V');
     if(l && n.value === v.value) {
         currentIndex = l.index;
+        updateOutConsole('FuncionBGE',label,'_',currentIndex )
+
     }
 }
 
@@ -707,6 +756,8 @@ function strb(register, value) {
     if(reg) {
         regValue.value = charToNumber(reg.value);
         console.log('strb result', regValue);
+        updateOutConsole('FuncionBLE',register,'=',regValue)
+
     }
 }
 
@@ -718,8 +769,13 @@ function asr(register, op1, op2) {
     let value1 = getValue(op1);
     let value2 = getValue(op2);
     console.log('asr', value1, value2);
+    updateOutputConsoleOP(register,op1, '=>',op2 )
+    updateOutConsole('asr',register,value1,value2 )
+
     if(reg) {
         reg.value = value1 >> value2;
+        updateOutConsole('asr',register,'=',reg.value )
+
     }
 }
 
@@ -728,8 +784,12 @@ function lsr(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1, '=>',op2 )
+    updateOutConsole('asr',register,value1,value2 )
     if(reg) {
         reg.value = value1 >> value2;
+        updateOutConsole('lsr',register,'=',reg.value )
+
     }
 }
 
@@ -738,8 +798,13 @@ function lsl(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1, '<=',op2 )
+    updateOutConsole('Desplazar1bitIzq',register,value1,value2 )
+
     if(reg) {
         reg.value = value1 << value2;
+        updateOutConsole('Desplazar1bitIzq',register,'=',reg.value )
+
     }
 }
 
@@ -748,8 +813,13 @@ function asl(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1, '<=',op2 )
+    updateOutConsole('Desplazar2bitsIzq',register,value1,value2 )
+
     if(reg) {
         reg.value = value1 << value2;
+        updateOutConsole('Desplazar2bitIzq',register,'=',reg.value )
+
     }
 }
 
@@ -758,8 +828,12 @@ function ror(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    updateOutputConsoleOP(register,op1, '<0>',op2 )
+    updateOutConsole('RotarDerecha',register,value1,value2 )
     if(reg) {
         reg.value = (value1 >> value2) | (value1 << (32 - value2));
+        updateOutConsole('Desplazar2bitIzq',register,'=',reg.value )
+
     }
 }
 

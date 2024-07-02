@@ -24,6 +24,7 @@ $(document).ready(function () {
     document.getElementById('btn__showC3dTable').addEventListener('click', showC3dTable);
     document.getElementById('btn__showQuartersTable').addEventListener('click', showQuartersTable);
 
+    
 
 });
 
@@ -560,45 +561,6 @@ document.getElementById('btn__analysis').addEventListener('click', () => {
     showRegisterTable();
 });
 
-// mostrar Debug 
-let c3dGlobal = null; // Variable para almacenar c3d globalmente
 
-document.getElementById('btn__debug').addEventListener('click', () => {
-    const activeTabId = getActiveTabId();
-    const editor = editors[activeTabId];
-    const text = editor.getValue();
-    try {
-        let resultado = FASE1.parse(text);
-        c3dGlobal = resultado.getC3d(resultado);
-        debug(c3dGlobal);
-        console.log('Debugging started:', c3dGlobal);
-        const consoleEditor = consoles[getActiveConsoleTabId()];
-        //consoleEditor.setValue('Debugging started. C3D generated: \n' + JSON.stringify(c3dGlobal, null, 2));
-    } catch (error) {
-        console.error('Error during parsing:', error);
-        const consoleEditor = consoles[getActiveConsoleTabId()];
-        consoleEditor.setValue('Error during parsing: ' + error.message);
-    }
-});
-
-//mostrar next line 
-document.getElementById('btn__nextLine').addEventListener('click', () => {
-    if (c3dGlobal) {
-        try {
-            executeLine(c3dGlobal);
-            console.log('Executed line:', c3dGlobal[currentIndex - 1]);
-            const consoleEditor = consoles[getActiveConsoleTabId()];
-            consoleEditor.setValue(consoleEditor.getValue() + '\nExecuted line: ' +JSON.stringify(c3dGlobal[currentIndex - 1], null, 2));
-        } catch (error) {
-            console.error('Error during execution:', error);
-            const consoleEditor = consoles[getActiveConsoleTabId()];
-           consoleEditor.setValue(consoleEditor.getValue() + '\nError during execution: ' + error.message);
-        }
-    } else {
-        console.error('No C3D available. Please start debugging first.');
-        const consoleEditor = consoles[getActiveConsoleTabId()];
-        consoleEditor.setValue('No C3D available. Please start debugging first.');
-    }
-});
 
 
