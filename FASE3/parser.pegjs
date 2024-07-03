@@ -20,10 +20,11 @@
     ];
     // Clase para representar un nodo del árbol de sintaxis concreto "CST"
     class ASTnode{
-        constructor(type, value, children = []){
+        constructor(type, value, children = [], location = null){
             this.type = type;
             this.value = value;
             this.children = children;
+            this.location = location;
             this.id = ASTnode.generateUniqueId();
         }
         // Genera un identificador único para el nodo del árbol "Para el archivo .dot"
@@ -211,8 +212,10 @@
                 } else if (node.type === 'DIRECTIVE' && (node.value === '.global' || node.value === '.text' || node.value === '.data' || node.value === '.bss' )) {
                     currentDirective = node.value;
                 } else if(node.type === 'LABEL' && node.value !== 'LBL' && (sectionScope || currentDirective === '.global')) {
-                    let instruction = { resultado: '', operador1: '', operador2: '', operacion: '' };
+                    let instruction = { resultado: '', operador1: '', operador2: '', operacion: '', line: 0, column: 0 };
                     instruction.operador1 = node.value;
+                    instruction.line = node.location.start.line;
+                    instruction.column = node.location.start.column;
                     instruction.resultado = currentDirective === '' ? '.text' : currentDirective;
                     if(currentDirective === '.global') currentDirective = '';
                     instructions.push(instruction);
@@ -222,6 +225,8 @@
                 } else if (node.type === 'INSTRUCTION') {
                     let instruction = { resultado: '', operador1: '', operador2: '', operacion: '' };
                     instruction.operacion = node.value;
+                    instruction.line = node.location.start.line;
+                    instruction.column = node.location.start.column;
                     if(node.children.length === 4) {
                         // Si es mayor a 4 se debe crear una operación temporal con los valores 3 y 2 del arreglo
                         // Ejemplo: MADD R0, R1, R2, R3
@@ -231,7 +236,7 @@
                         const operation = operations.find(op => op.operation === node.value);
                         if(operation && operation.type === 'arithmetic') {
                             // const temp1 = { resultado: 'T' + temporalCounter, operador1: node.children[1].children[0].value, operador2: node.children[2].children[0].value, operacion: operation.decompose[1] };
-                            const temp1 = { resultado: temporalRegister, operador1: node.children[1].children[0].value, operador2: node.children[2].children[0].value, operacion: operation.decompose[1] };
+                            const temp1 = { resultado: temporalRegister, operador1: node.children[1].children[0].value, operador2: node.children[2].children[0].value, operacion: operation.decompose[1], line: node.location.start.line, column: node.location.start.column};
                             instructions.push(temp1);
                             instruction.operacion = operation.decompose[0];
                             instruction.resultado = node.children[0].children[0].value;
@@ -332,8 +337,8 @@
     }
 
     // Funciones para crear y manipular nodos del árbol de sintaxis concreto "CST"
-    function createNode(type, value, children = []){
-        return new ASTnode(type, value, children);
+    function createNode(type, value, location, children = []){
+        return new ASTnode(type, value, children, location);
     }
     function setValue(node, value){
         node.value = value;
@@ -376,7 +381,7 @@
         console.log(dot);
         return dot;
     }
-    const root = createNode('ROOT', 'ROOT');
+    const root = createNode('ROOT', 'ROOT', location());
 }
 // Iniciamos el análisis sintáctico con la regla inicial "start"
 start
@@ -391,7 +396,7 @@ start
 directive
   = _* name:directive_p _* args:(directive_p / label / string / expression)? _* comment? "\n"?
   {
-    const node = createNode('DIRECTIVE', 'Directive');
+    const node = createNode('DIRECTIVE', 'Directive', location());
     addChild(node, name);
     if(args){
         addChild(node, args);
@@ -403,19 +408,19 @@ directive
 directive_p
     = "." directive_name
     {
-        const node = createNode('DIRECTIVE', text());
+        const node = createNode('DIRECTIVE', text(), location());
         return node;  
     }
 // Nombre de las directivas
 directive_name
-  = "align" / "ascii" / "asciz" / "byte" / "hword" / "word" / "quad" / "skip" / 
+  = "align" / "ascii" / "asciz" / "byte" / "hword" / "word" / "quad" / "skip" / "extern" /
     "data" / "text" / "global" / "section" / "space" / "zero" / "incbin" / "set" / "equ" / "bss"
 
 // Secciones
 section
   = _* label:label _* ":" _* comment? "\n"?
   {
-    const node = createNode('SECTION', 'Section');
+    const node = createNode('SECTION', 'Section', location());
     addChild(node, label);
     return node;
   }
@@ -516,9 +521,9 @@ instruction
 uxt_inst
     = _* "UXTB"i _* rd:reg64 _* "," _* src1:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'UXTB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'UXTB', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -530,9 +535,9 @@ uxt_inst
 smulh_inst
     = _* "SMULH"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SMULH');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SMULH', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -545,9 +550,9 @@ smulh_inst
 smull_inst
     = _* "SMULL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SMULL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SMULL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -560,10 +565,10 @@ smull_inst
 umaddl_inst
     = _* "UMADDL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'UMADDL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'UMADDL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -578,10 +583,10 @@ umaddl_inst
 umnegl_inst
     = _* "UMNEGL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _*  _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'UMNEGL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'UMNEGL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -595,10 +600,10 @@ umnegl_inst
 umsubl_inst
     = _* "UMSUBL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'UMSUBL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'UMSUBL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -613,9 +618,9 @@ umsubl_inst
 umulh_inst
     = _* "UMULH"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'UMULH');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'UMULH', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -628,9 +633,9 @@ umulh_inst
 umull_inst
     = _* "UMULL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'UMULL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'UMULL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -643,9 +648,9 @@ umull_inst
 add_inst "Instrucción de Suma"
     = _* "ADD"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ADD');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ADD', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -655,9 +660,9 @@ add_inst "Instrucción de Suma"
         }
     / _* "ADD"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ADD');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ADD', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -670,9 +675,9 @@ add_inst "Instrucción de Suma"
 adc_inst "Instrucción de Suma con acarreo"
     = _* "ADC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ADC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ADC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -682,9 +687,9 @@ adc_inst "Instrucción de Suma con acarreo"
         }
     / _* "ADC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ADC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ADC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -698,9 +703,9 @@ adc_inst "Instrucción de Suma con acarreo"
 cmn_inst "Instrucción de Comparación con negado"
     = _* "CMN"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CMN');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CMN', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -710,9 +715,9 @@ cmn_inst "Instrucción de Comparación con negado"
         }
     / _* "CMN"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CMN');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CMN', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -725,9 +730,9 @@ cmn_inst "Instrucción de Comparación con negado"
 madd_inst
     = _* "MADD"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MADD');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MADD', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -738,9 +743,9 @@ madd_inst
         }
     / _* "MADD"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MADD');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MADD', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -754,9 +759,9 @@ madd_inst
 mneg_inst
     = _* "MNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MNEG');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MNEG', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -766,9 +771,9 @@ mneg_inst
         }
     / _* "MNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MNEG');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MNEG', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -781,9 +786,9 @@ mneg_inst
 msub_inst
     = _* "MSUB"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MSUB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MSUB', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -794,9 +799,9 @@ msub_inst
         }
     / _* "MSUB"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MSUB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MSUB', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -810,8 +815,8 @@ msub_inst
 ngc_inst
     = _* "NGC"i _* rd:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'NGC');
-            const rdNode = createNode('DESTINATION', 'RD');
+            const node = createNode('INSTRUCTION', 'NGC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
             addChild(rdNode, rd);
             addChild(node, rdNode);
             addChild(node, src2);
@@ -819,8 +824,8 @@ ngc_inst
         }
     / _* "NGC"i _* rd:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'NGC');
-            const rdNode = createNode('DESTINATION', 'RD');
+            const node = createNode('INSTRUCTION', 'NGC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
             addChild(rdNode, rd);
             addChild(node, rdNode);
             addChild(node, src2);
@@ -831,9 +836,9 @@ ngc_inst
 sbc_inst
     = _* "SBC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SBC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SBC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -843,9 +848,9 @@ sbc_inst
         }
     / _* "SBC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SBC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SBC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -858,9 +863,9 @@ sbc_inst
 smaddl_inst
     = _* "SMADDL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SMADDL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SMADDL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -874,9 +879,9 @@ smaddl_inst
 smnegl_inst
     = _* "SMNEGL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _*  _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SMNEGL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SMNEGL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -889,9 +894,9 @@ smnegl_inst
 smsubl_inst
     = _* "SMSUBL"i _* rd:reg64 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SMSUBL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SMSUBL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             setNode();
             addChild(rdNode, rd);
             addChild(src1Node, src1);
@@ -907,9 +912,9 @@ smsubl_inst
 sub_inst
     = _* "SUB"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SUB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SUB', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -919,9 +924,9 @@ sub_inst
         }
     / _* "SUB"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SUB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SUB', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -933,9 +938,9 @@ sub_inst
 mul_inst
     = _* "MUL"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MUL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MUL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -945,9 +950,9 @@ mul_inst
         }
     / _* "MUL"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MUL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MUL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -959,9 +964,9 @@ mul_inst
 div_inst
     = _* "DIV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'DIV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'DIV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -971,9 +976,9 @@ div_inst
         }
     / _* "DIV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'DIV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'DIV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -985,9 +990,9 @@ div_inst
 udiv_inst
     = _* "UDIV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'UDIV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'UDIV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -997,9 +1002,9 @@ udiv_inst
         }
     / _* "UDIV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'UDIV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'UDIV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1011,9 +1016,9 @@ udiv_inst
 sdiv_inst
     = _* "SDIV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SDIV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SDIV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1023,9 +1028,9 @@ sdiv_inst
         }
     / _* "SDIV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SDIV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SDIV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1039,9 +1044,9 @@ sdiv_inst
 bfi_inst
     = _* "BFI"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BFI');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BFI', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1052,9 +1057,9 @@ bfi_inst
         }
     / _* "BFI"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BFI');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BFI', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1068,9 +1073,9 @@ bfi_inst
 bfxil_inst
     = _* "BFXIL"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BFXIL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BFXIL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1081,9 +1086,9 @@ bfxil_inst
         }
     / _* "BFXIL"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BFXIL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BFXIL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1097,9 +1102,9 @@ bfxil_inst
 cls_inst
     = _* "CLS"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CLS');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CLS', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1108,9 +1113,9 @@ cls_inst
         }
     / _* "CLS"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CLS');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CLS', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1122,9 +1127,9 @@ cls_inst
 clz_inst
     = _* "CLZ"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CLZ');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CLZ', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1133,9 +1138,9 @@ clz_inst
         }
     / _* "CLZ"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CLZ');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CLZ', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1147,9 +1152,9 @@ clz_inst
 extr_inst
     = _* "EXTR"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'EXTR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'EXTR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1160,9 +1165,9 @@ extr_inst
         }
     / _* "EXTR"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'EXTR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'EXTR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1176,9 +1181,9 @@ extr_inst
 rbit_inst
     = _* "RBIT"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'RBIT');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'RBIT', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1187,9 +1192,9 @@ rbit_inst
         }
     / _* "RBIT"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'RBIT');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'RBIT', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1201,9 +1206,9 @@ rbit_inst
 rev_inst
     = _* "REV"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'REV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'REV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1212,9 +1217,9 @@ rev_inst
         }
     / _* "REV"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'REV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'REV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1226,9 +1231,9 @@ rev_inst
 rev16_inst
     = _* "REV16"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'REV16');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'REV16', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1237,9 +1242,9 @@ rev16_inst
         }
     / _* "REV16"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'REV16');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'REV16', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1251,9 +1256,9 @@ rev16_inst
 rev32_inst
     = _* "REV32"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'REV32');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'REV32', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1262,9 +1267,9 @@ rev32_inst
         }
     / _* "REV32"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'REV32');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'REV32', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1276,9 +1281,9 @@ rev32_inst
 bfiz_inst
     = _* "BFIZ"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BFIZ');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BFIZ', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1289,9 +1294,9 @@ bfiz_inst
         }
     / _* "BFIZ"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BFIZ');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BFIZ', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1305,9 +1310,9 @@ bfiz_inst
 bfx_inst
     = _* "BFX"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* src3:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BFX');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BFX', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1318,9 +1323,9 @@ bfx_inst
         }
     / _* "BFX"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* src3:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BFX');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BFX', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1334,9 +1339,9 @@ bfx_inst
 sxtw_inst
     = _* "SXTW"i _* rd:reg64 _* "," _* src1:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SXTW');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SXTW', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1348,9 +1353,9 @@ sxtw_inst
 and_inst
     = _* "AND"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'AND');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'AND', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1360,9 +1365,9 @@ and_inst
         }
     / _* "AND"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'AND');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'AND', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1375,9 +1380,9 @@ and_inst
 ands_inst
     = _* "ANDS"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ANDS');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ANDS', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1387,9 +1392,9 @@ ands_inst
         }
     / _* "ANDS"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ANDS');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ANDS', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1402,9 +1407,9 @@ ands_inst
 bic_inst
     = _* "BIC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BIC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BIC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1414,9 +1419,9 @@ bic_inst
         }
     / _* "BIC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BIC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BIC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1429,9 +1434,9 @@ bic_inst
 eon_inst
     = _* "EON"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'EON');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'EON', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1441,9 +1446,9 @@ eon_inst
         }
     / _* "EON"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'EON');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'EON', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1456,9 +1461,9 @@ eon_inst
 orr_inst
     = _* "ORR"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ORR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ORR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1468,9 +1473,9 @@ orr_inst
         }
     / _* "ORR"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ORR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ORR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1482,9 +1487,9 @@ orr_inst
 eor_inst
     = _* "EOR"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'EOR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'EOR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1494,9 +1499,9 @@ eor_inst
         }
     / _* "EOR"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'EOR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'EOR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1508,9 +1513,9 @@ eor_inst
 mov_inst "Instrucción MOV"
   = _* "MOV"i _* rd:reg64_or_reg32 _* "," _* src:mov_source _* comment? "\n"?
   {
-    const node = createNode('INSTRUCTION', 'MOV');
-    const rdNode = createNode('DESTINATION', 'RD');
-    const srcNode = createNode('SOURCE1', 'SRC1');
+    const node = createNode('INSTRUCTION', 'MOV', location());
+    const rdNode = createNode('DESTINATION', 'RD', location());
+    const srcNode = createNode('SOURCE1', 'SRC1', location());
     addChild(rdNode, rd);
     addChild(srcNode, src);
     addChild(node, rdNode);
@@ -1523,9 +1528,9 @@ mov_inst "Instrucción MOV"
 movk_inst "Instrucción MOVK"
   = _* "MOVK"i _* rd:reg64_or_reg32 _* "," _* src:movk_source _* comment? "\n"?
   {
-    const node = createNode('INSTRUCTION', 'MOVK');
-    const rdNode = createNode('DESTINATION', 'RD');
-    const srcNode = createNode('SOURCE1', 'SRC1');
+    const node = createNode('INSTRUCTION', 'MOVK', location());
+    const rdNode = createNode('DESTINATION', 'RD', location());
+    const srcNode = createNode('SOURCE1', 'SRC1', location());
     addChild(rdNode, rd);
     addChild(srcNode, src);
     addChild(node, rdNode);
@@ -1534,9 +1539,9 @@ movk_inst "Instrucción MOVK"
   }
   / _* "MOVK"i _* rd:reg64_or_reg32 _* "," _* src:movk_source _* "," _* src2:movk_source _* comment? "\n"?
   {
-    const node = createNode('INSTRUCTION', 'MOVK');
-    const rdNode = createNode('DESTINATION', 'RD');
-    const srcNode = createNode('SOURCE1', 'SRC1');
+    const node = createNode('INSTRUCTION', 'MOVK', location());
+    const rdNode = createNode('DESTINATION', 'RD', location());
+    const srcNode = createNode('SOURCE1', 'SRC1', location());
     addChild(rdNode, rd);
     addChild(srcNode, src);
     addChild(node, rdNode);
@@ -1549,9 +1554,9 @@ movk_inst "Instrucción MOVK"
 orn_inst
     = _* "ORN"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ORN');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ORN', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1561,9 +1566,9 @@ orn_inst
         }
     / _* "ORN"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ORN');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ORN', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1576,8 +1581,8 @@ orn_inst
 tst_inst
     = _* "TST"i _* rd:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'TST');
-            const rdNode = createNode('DESTINATION', 'RD');
+            const node = createNode('INSTRUCTION', 'TST', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
             addChild(rdNode, rd);
             addChild(node, rdNode);
             addChild(node, src2);
@@ -1585,8 +1590,8 @@ tst_inst
         }
     / _* "TST"i _* rd:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'TST');
-            const rdNode = createNode('DESTINATION', 'RD');
+            const node = createNode('INSTRUCTION', 'TST', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
             addChild(rdNode, rd);
             addChild(node, rdNode);
             addChild(node, src2);
@@ -1598,9 +1603,9 @@ tst_inst
 movn_inst
     = _* "MOVN"i _* rd:reg64_or_reg32 _* "," _* src:movk_source _* comment? "\n"?
     {
-        const node = createNode('INSTRUCTION', 'MOVN');
-        const rdNode = createNode('DESTINATION', 'RD');
-        const srcNode = createNode('SOURCE1', 'SRC1');
+        const node = createNode('INSTRUCTION', 'MOVN', location());
+        const rdNode = createNode('DESTINATION', 'RD', location());
+        const srcNode = createNode('SOURCE1', 'SRC1', location());
         addChild(rdNode, rd);
         addChild(srcNode, src);
         addChild(node, rdNode);
@@ -1611,9 +1616,9 @@ movn_inst
 movz_inst
     = _* "MOVZ"i _* rd:reg64_or_reg32 _* "," _* src:movk_source _* comment? "\n"?
     {
-        const node = createNode('INSTRUCTION', 'MOVZ');
-        const rdNode = createNode('DESTINATION', 'RD');
-        const srcNode = createNode('SOURCE1', 'SRC1');
+        const node = createNode('INSTRUCTION', 'MOVZ', location());
+        const rdNode = createNode('DESTINATION', 'RD', location());
+        const srcNode = createNode('SOURCE1', 'SRC1', location());
         addChild(rdNode, rd);
         addChild(srcNode, src);
         addChild(node, rdNode);
@@ -1641,9 +1646,9 @@ mov_source "Source para MOV"
 ldrb_inst "Instrucción LDRB"
     = _* "LDRB"i _* rd:reg64 _* "," _* src:ldr_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LDRB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LDRB', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChildren(srcNode, src);
             addChild(node, rdNode);
@@ -1652,9 +1657,9 @@ ldrb_inst "Instrucción LDRB"
         }
     / _* "LDRB"i _* rd:reg32 _* "," _* src:ldr_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LDRB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LDRB', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChildren(srcNode, src);
             addChild(node, rdNode);
@@ -1667,9 +1672,9 @@ ldrb_inst "Instrucción LDRB"
 ldr_inst "Instrucción LDR"
     = _* "LDR"i _* rd:reg64 _* "," _* src:ldr_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LDR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LDR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChildren(srcNode, src);
             addChild(node, rdNode);
@@ -1678,9 +1683,9 @@ ldr_inst "Instrucción LDR"
         }
     / _* "LDR"i _* rd:reg32 _* "," _* src:ldr_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LDR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LDR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChildren(srcNode, src);
             addChild(node, rdNode);
@@ -1696,34 +1701,34 @@ ldr_source
         }
     / "[" _* r:reg64_or_reg32 _* "," _* r2:reg64_or_reg32 _* "," _* s:shift_op _* i2:immediate _* "]"
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChildren(node, [r, r2, s, i2] );
             return node;
         }
     / "[" _* r:reg64 _* "," _* i:operand64 _* "," _* s:shift_op _* i2:immediate _* "]"
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChildren(node, [r, i, s, i2] );
             return node;
             // return [r, i, s, i2];
         }
     / "[" _* r:reg64 _* "," _* i:operand64 _* "," _* e:extend_op _* "]" 
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChildren(node, [r, i, e] );
             return node;
             // return [r, i, e];
         }
     / "[" _* r:reg64 _* "," _* i:operand64 _* "]"
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChildren(node, [r, i] );
             return node;
             // return [r, i];
         }
     / "[" _* r:reg64 _* "]"
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChild(node, r);
             return node;
             // return [r];
@@ -1735,10 +1740,10 @@ ldr_source
 ldp_inst "Instrucción LDP"
     = _* "LDP"i _* rd:reg64 _* "," _* rd2:reg64 _* "," _* src:ldr_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LDP');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const rd2Node = createNode('DESTINATION', 'RD2');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LDP', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const rd2Node = createNode('DESTINATION', 'RD2', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(rd2Node, rd2);
             addChildren(srcNode, src);
@@ -1749,10 +1754,10 @@ ldp_inst "Instrucción LDP"
         }
     / _* "LDP"i _* rd:reg32 _* "," _* rd2:reg32 _* "," _* src:ldr_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LDP');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const rd2Node = createNode('DESTINATION', 'RD2');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LDP', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const rd2Node = createNode('DESTINATION', 'RD2', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(rd2Node, rd2);
             addChildren(srcNode, src);
@@ -1766,10 +1771,10 @@ ldp_inst "Instrucción LDP"
 ldpsw_inst
     = _* "LDPSW"i _* rd:reg64 _* "," _* rd2:reg64 _* "," _* src:ldr_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LDPSW');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const rd2Node = createNode('DESTINATION', 'RD2');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LDPSW', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const rd2Node = createNode('DESTINATION', 'RD2', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(rd2Node, rd2);
             addChildren(srcNode, src);
@@ -1783,9 +1788,9 @@ ldpsw_inst
 prfm_inst
     = _* "PRFM"i _* rd:reg64 _* "," _* src:ldr_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'PRFM');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'PRFM', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChildren(srcNode, src);
             addChild(node, rdNode);
@@ -1799,9 +1804,9 @@ prfm_inst
 clr_inst
     = _* "CLR"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CLR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CLR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1810,9 +1815,9 @@ clr_inst
         }
     / _* "CLR"i _* rd:reg32 _* "," _* src1:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CLR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CLR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1824,9 +1829,9 @@ clr_inst
 set_inst
     = _* "SET"i _* rd:reg64 _* "," _* src1:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SET');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SET', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1839,9 +1844,9 @@ set_inst
 str_inst "Instrucción STR"
     = _* "STR"i _* rd:reg64 _* "," _* src:str_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'STR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'STR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChildren(srcNode, src);
             addChild(node, rdNode);
@@ -1850,9 +1855,9 @@ str_inst "Instrucción STR"
         }
     / _* "STR"i _* rd:reg32 _* "," _* src:str_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'STR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'STR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChildren(srcNode, src);
             addChild(node, rdNode);
@@ -1862,35 +1867,35 @@ str_inst "Instrucción STR"
 str_source 
     = "[" _* r:reg64_or_reg32 _* "," _* r2:reg64_or_reg32 _* "," _* s:shift_op _* i2:immediate _* "]"
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChildren(node, [r, r2, s, i2] );
             return node;
             // return [r, r2, s, i2];
         }
     / "[" _* r:reg64 _* "," _* i:operand64 _* "," _* s:shift_op _* i2:immediate _* "]"
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChildren(node, [r, i, s, i2] );
             return node;
             // return [r, i, s, i2];
         }
     / "[" _* r:reg64 _* "," _* i:operand64 _* "," _* e:extend_op _* "]" 
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChildren(node, [r, i, e] );
             return node;
             // return [r, i, e];
         }
     / "[" _* r:reg64 _* "," _* i:operand64 _* "]"
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChildren(node, [r, i] );
             return node;
             // return [r, i];
         }
     / "[" _* r:reg64 _* "]"
         {
-            const node = createNode('[]', '[]');
+            const node = createNode('[]', '[]', location());
             addChild(node, r);
             return node;
             // return [r];
@@ -1900,9 +1905,9 @@ str_source
 strb_inst "Instrucción STRB"
     = _* "STRB"i _* rd:reg64 _* "," _* src:str_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'STRB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'STRB', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChildren(srcNode, src);
             addChild(node, rdNode);
@@ -1911,9 +1916,9 @@ strb_inst "Instrucción STRB"
         }
     / _* "STRB"i _* rd:reg32 _* "," _* src:str_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'STRB');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'STRB', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChildren(srcNode, src);
             addChild(node, rdNode);
@@ -1925,10 +1930,10 @@ strb_inst "Instrucción STRB"
 stp_inst "Instrucción STP"
     = _* "STP"i _* rd:reg64 _* "," _* rd2:reg64 _* "," _* src:str_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'STP');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const rd2Node = createNode('DESTINATION', 'RD2');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'STP', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const rd2Node = createNode('DESTINATION', 'RD2', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(rd2Node, rd2);
             addChildren(srcNode, src);
@@ -1939,10 +1944,10 @@ stp_inst "Instrucción STP"
         }
     / _* "STP"i _* rd:reg32 _* "," _* rd2:reg32 _* "," _* src:str_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'STP');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const rd2Node = createNode('DESTINATION', 'RD2');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'STP', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const rd2Node = createNode('DESTINATION', 'RD2', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(rd2Node, rd2);
             addChildren(srcNode, src);
@@ -1955,9 +1960,9 @@ stp_inst "Instrucción STP"
 mvn_inst "Instrucción MVN"
     = _* "MVN"i _* rd:reg64 _* "," _* src:mov_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MVN');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MVN', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(srcNode, src);
             addChild(node, rdNode);
@@ -1966,9 +1971,9 @@ mvn_inst "Instrucción MVN"
         }
     / _* "MVN"i _* rd:reg32 _* "," _* src:mov_source _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'MVN');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'MVN', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(srcNode, src);
             addChild(node, rdNode);
@@ -1980,9 +1985,9 @@ mvn_inst "Instrucción MVN"
 lsl_inst "Instrucción LSL"
     = _* "LSL"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LSL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LSL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -1992,9 +1997,9 @@ lsl_inst "Instrucción LSL"
         }
     / _* "LSL"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LSL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LSL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -2007,9 +2012,9 @@ lsl_inst "Instrucción LSL"
 lsr_inst "Instrucción LSR"
     = _* "LSR"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LSR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LSR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -2019,9 +2024,9 @@ lsr_inst "Instrucción LSR"
         }
     / _* "LSR"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LSR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LSR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -2034,9 +2039,9 @@ lsr_inst "Instrucción LSR"
 asr_inst "Instrucción ASR"
     = _* "ASR"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ASR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ASR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -2046,9 +2051,9 @@ asr_inst "Instrucción ASR"
         }
     / _* "ASR"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ASR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ASR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -2061,9 +2066,9 @@ asr_inst "Instrucción ASR"
 ror_inst "Instrucción ROR"
     = _* "ROR"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ROR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ROR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -2073,9 +2078,9 @@ ror_inst "Instrucción ROR"
         }
     / _* "ROR"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'ROR');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'ROR', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -2088,8 +2093,8 @@ ror_inst "Instrucción ROR"
 cmp_inst "Instrucción CMP"
     = _* "CMP"i _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CMP');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CMP', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(src1Node, src1);
             addChild(node, src1Node);
             addChild(node, src2);
@@ -2097,8 +2102,8 @@ cmp_inst "Instrucción CMP"
         }
     / _* "CMP"i _* src1:reg32 _* "," _* src2:operand32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CMP');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CMP', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(src1Node, src1);
             addChild(node, src1Node);
             addChild(node, src2);
@@ -2109,8 +2114,8 @@ cmp_inst "Instrucción CMP"
 b_inst "Instrucción B"
     = _* "B"i _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'B');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'B', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
@@ -2120,8 +2125,8 @@ b_inst "Instrucción B"
 ble_inst "Instrucción BLE"
     = _* "BLE"i _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BLE');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'BLE', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
@@ -2131,8 +2136,8 @@ ble_inst "Instrucción BLE"
 bl_inst "Instrucción BL"
     = _* "BL"i _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BL');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'BL', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
@@ -2142,8 +2147,8 @@ bl_inst "Instrucción BL"
 blr_inst "Instrucción BLR"
     = _* "BLR"i _* src:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BLR');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BLR', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(srcNode, src);
             addChild(node, srcNode);
             return node;
@@ -2153,8 +2158,8 @@ blr_inst "Instrucción BLR"
 br_inst "Instrucción BR"
     = _* "BR"i _* src:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BR');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'BR', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(srcNode, src);
             addChild(node, srcNode);
             return node;
@@ -2164,9 +2169,9 @@ br_inst "Instrucción BR"
 cbnz_inst
     = _* "CBNZ"i _* src:reg64_or_reg32 _* "," _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CBNZ');
-            const srcNode = createNode('SOURCE1', 'SRC1');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'CBNZ', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(srcNode, src);
             addChild(labelNode, l);
             addChild(node, srcNode);
@@ -2178,9 +2183,9 @@ cbnz_inst
 cbz_inst
     = _* "CBZ"i _* src:reg64_or_reg32 _* "," _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CBZ');
-            const srcNode = createNode('SOURCE1', 'SRC1');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'CBZ', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(srcNode, src);
             addChild(labelNode, l);
             addChild(node, srcNode);
@@ -2192,7 +2197,7 @@ cbz_inst
 ret_inst "Instrucción RET"
     = _* "RET"i _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'RET');
+            const node = createNode('INSTRUCTION', 'RET', location());
             return node;
         }
 
@@ -2200,9 +2205,9 @@ ret_inst "Instrucción RET"
 tbnz_inst
     = _* "TBNZ"i _* src:reg64_or_reg32 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'TBNZ');
-            const srcNode = createNode('SOURCE1', 'SRC1');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'TBNZ', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(srcNode, src);
             addChild(labelNode, l);
             addChild(node, srcNode);
@@ -2215,9 +2220,9 @@ tbnz_inst
 tbz_inst
     = _* "TBZ"i _* src:reg64_or_reg32 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'TBZ');
-            const srcNode = createNode('SOURCE1', 'SRC1');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'TBZ', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(srcNode, src);
             addChild(node, srcNode);
             addChild(node, i);
@@ -2230,8 +2235,8 @@ tbz_inst
 beq_inst "Instrucción BEQ"
     = _* "BEQ"i _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BEQ');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'BEQ', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
@@ -2241,8 +2246,8 @@ beq_inst "Instrucción BEQ"
 bne_inst "Instrucción BNE"
     = _* "BNE"i _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BNE');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'BNE', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
@@ -2252,8 +2257,8 @@ bne_inst "Instrucción BNE"
 bgt_inst "Instrucción BGT"
     = _* "BGT"i _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BGT');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'BGT', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
@@ -2263,8 +2268,8 @@ bgt_inst "Instrucción BGT"
 blt_inst "Instrucción BLT"
     = _* "BLT"i _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'BLT');
-            const labelNode = createNode('LABEL', 'LBL');
+            const node = createNode('INSTRUCTION', 'BLT', location());
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
@@ -2274,8 +2279,8 @@ blt_inst "Instrucción BLT"
 svc_inst "Instrucción SVC"
     = _* "SVC"i _* i:immediate _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SVC');
-            const srcNode = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'SVC', location());
+            const srcNode = createNode('SOURCE1', 'SRC1', location());
             addChild(srcNode, i);
             addChild(node, srcNode);
             return node;
@@ -2287,10 +2292,10 @@ svc_inst "Instrucción SVC"
 cas_inst
     = _* "CAS"i "A"i? "L"i? _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CAS');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'CAS', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -2301,10 +2306,10 @@ cas_inst
         }
     / _* "CAS"i "A"i? "L"i? _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CAS');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'CAS', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -2318,10 +2323,10 @@ cas_inst
 swp_inst
     = _* "SWP"i "A"i? "L"i? _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SWP');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'SWP', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -2332,10 +2337,10 @@ swp_inst
         }
     / _* "SWP"i "A"i? "L"i? _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'SWP');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'SWP', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -2351,26 +2356,26 @@ swp_inst
 ccmn_inst
     = _* "CCMN"i _* src1:reg64 _* "," _* src2:operand64 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CCMN');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CCMN', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(src1Node, src1);
             addChild(node, src1Node);
             addChild(node, src2);
             addChild(node, i);
-            const labelNode = createNode('LABEL', 'LBL');
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
         }
     / _* "CCMN"i _* src1:reg32 _* "," _* src2:operand32 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CCMN');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CCMN', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(src1Node, src1);
             addChild(node, src1Node);
             addChild(node, src2);
             addChild(node, i);
-            const labelNode = createNode('LABEL', 'LBL');
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
@@ -2380,26 +2385,26 @@ ccmn_inst
 ccmp_inst
     = _* "CCMP"i _* src1:reg64 _* "," _* src2:operand64 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CCMP');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CCMP', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(src1Node, src1);
             addChild(node, src1Node);
             addChild(node, src2);
             addChild(node, i);
-            const labelNode = createNode('LABEL', 'LBL');
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
         }
     / _* "CCMP"i _* src1:reg32 _* "," _* src2:operand32 _* "," _* i:immediate _* "," _* l:label _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CCMP');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CCMP', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(src1Node, src1);
             addChild(node, src1Node);
             addChild(node, src2);
             addChild(node, i);
-            const labelNode = createNode('LABEL', 'LBL');
+            const labelNode = createNode('LABEL', 'LBL', location());
             addChild(labelNode, l);
             addChild(node, labelNode);
             return node;
@@ -2409,28 +2414,28 @@ ccmp_inst
 cinc_inst
     = _* "CINC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CINC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CINC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
         }
     / _* "CINC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CINC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CINC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
@@ -2440,28 +2445,28 @@ cinc_inst
 cinv_inst
     = _* "CINV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CINV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CINV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
         }
     / _* "CINV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CINV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CINV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
@@ -2471,28 +2476,28 @@ cinv_inst
 cneg_inst
     = _* "CNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CNEG');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CNEG', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
         }
     / _* "CNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CNEG');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CNEG', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
@@ -2502,30 +2507,30 @@ cneg_inst
 csel_inst
     = _* "CSEL"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSEL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CSEL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
         }
     / _* "CSEL"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSEL');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CSEL', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
@@ -2535,22 +2540,22 @@ csel_inst
 cset_inst
     = _* "CSET"i _* rd:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSET');
-            const rdNode = createNode('DESTINATION', 'RD');
+            const node = createNode('INSTRUCTION', 'CSET', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
             addChild(rdNode, rd);
             addChild(node, rdNode);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
         }
     / _* "CSET"i _* rd:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSET');
-            const rdNode = createNode('DESTINATION', 'RD');
+            const node = createNode('INSTRUCTION', 'CSET', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
             addChild(rdNode, rd);
             addChild(node, rdNode);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
@@ -2560,22 +2565,22 @@ cset_inst
 csetm_inst
     = _* "CSETM"i _* rd:reg64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSETM');
-            const rdNode = createNode('DESTINATION', 'RD');
+            const node = createNode('INSTRUCTION', 'CSETM', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
             addChild(rdNode, rd);
             addChild(node, rdNode);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
         }
     / _* "CSETM"i _* rd:reg32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSETM');
-            const rdNode = createNode('DESTINATION', 'RD');
+            const node = createNode('INSTRUCTION', 'CSETM', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
             addChild(rdNode, rd);
             addChild(node, rdNode);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
@@ -2585,30 +2590,30 @@ csetm_inst
 csinc_inst
     = _* "CSINC"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSINC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CSINC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
         }
     / _* "CSINC"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSINC');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CSINC', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
@@ -2618,82 +2623,82 @@ csinc_inst
 condition_inst
     = "EQ"i
         {
-            const node = createNode('CONDITION', 'EQ');
+            const node = createNode('CONDITION', 'EQ', location());
             return node;
         }
     / "NE"i
         {
-            const node = createNode('CONDITION', 'NE');
+            const node = createNode('CONDITION', 'NE', location());
             return node;
         }
     / "CS"i
         {
-            const node = createNode('CONDITION', 'CS');
+            const node = createNode('CONDITION', 'CS', location());
             return node;
         }
     / "CC"i
         {
-            const node = createNode('CONDITION', 'CC');
+            const node = createNode('CONDITION', 'CC', location());
             return node;
         }
     / "MI"i
         {
-            const node = createNode('CONDITION', 'MI');
+            const node = createNode('CONDITION', 'MI', location());
             return node;
         }
     / "PL"i
         {
-            const node = createNode('CONDITION', 'PL');
+            const node = createNode('CONDITION', 'PL', location());
             return node;
         }
     / "VS"i
         {
-            const node = createNode('CONDITION', 'VS');
+            const node = createNode('CONDITION', 'VS', location());
             return node;
         }
     / "VC"i
         {
-            const node = createNode('CONDITION', 'VC');
+            const node = createNode('CONDITION', 'VC', location());
             return node;
         }
     / "HI"i
         {
-            const node = createNode('CONDITION', 'HI');
+            const node = createNode('CONDITION', 'HI', location());
             return node;
         }
     / "LS"i
         {
-            const node = createNode('CONDITION', 'LS');
+            const node = createNode('CONDITION', 'LS', location());
             return node;
         }
     / "GE"i
         {
-            const node = createNode('CONDITION', 'GE');
+            const node = createNode('CONDITION', 'GE', location());
             return node;
         }
     / "LT"i
         {
-            const node = createNode('CONDITION', 'LT');
+            const node = createNode('CONDITION', 'LT', location());
             return node;
         }
     / "GT"i
         {
-            const node = createNode('CONDITION', 'GT');
+            const node = createNode('CONDITION', 'GT', location());
             return node;
         }
     / "LE"i
         {
-            const node = createNode('CONDITION', 'LE');
+            const node = createNode('CONDITION', 'LE', location());
             return node;
         }
     / "AL"i
         {
-            const node = createNode('CONDITION', 'AL');
+            const node = createNode('CONDITION', 'AL', location());
             return node;
         }
     / "NV"i
         {
-            const node = createNode('CONDITION', 'NV');
+            const node = createNode('CONDITION', 'NV', location());
             return node;
         }
 
@@ -2701,30 +2706,30 @@ condition_inst
 csinv_inst
     = _* "CSINV"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSINV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CSINV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
         }
     / _* "CSINV"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSINV');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CSINV', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
@@ -2734,30 +2739,30 @@ csinv_inst
 csneg_inst
     = _* "CSNEG"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSNEG');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CSNEG', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
         }
     / _* "CSNEG"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand32 _* "," _* condition:condition_inst _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CSNEG');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'CSNEG', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
             addChild(node, src1Node);
             addChild(node, src2);
-            const conditionNode = createNode('CONDITION', 'COND');
+            const conditionNode = createNode('CONDITION', 'COND', location());
             addChild(conditionNode, condition);
             addChild(node, conditionNode);
             return node;
@@ -2767,37 +2772,37 @@ csneg_inst
 reg64 "Registro_64_Bits"
     = "x"i ("30" / [12][0-9] / [0-9])
         {
-            const node = createNode('RG_64_BITS', 'reg64');
+            const node = createNode('RG_64_BITS', 'reg64', location());
             setValue(node, text());
             return node;
         }
     / "SP"i // Stack Pointer
         {
-            const node = createNode('R_STACK_POINTER', 'SP');
+            const node = createNode('R_STACK_POINTER', 'SP', location());
             setValue(node, text());
             return node;
         }
     / "LR"i  // Link Register
         {
-            const node = createNode('R_LINK_REGISTER', 'LR');
+            const node = createNode('R_LINK_REGISTER', 'LR', location());
             setValue(node, text());
             return node;
         }
     / "ZR"i  // Zero Register
         {
-            const node = createNode('R_ZERO_REGISTER', 'ZR');
+            const node = createNode('R_ZERO_REGISTER', 'ZR', location());
             setValue(node, text());
             return node;
         }
     / "PC"i  // Program Counter
         {
-            const node = createNode('R_PROGRAM_COUNTER', 'PC');
+            const node = createNode('R_PROGRAM_COUNTER', 'PC', location());
             setValue(node, text());
             return node;
         }
     / "XZR"i // Zero Register
         {
-            const node = createNode('R_ZERO_REGISTER', 'ZR');
+            const node = createNode('R_ZERO_REGISTER', 'ZR', location());
             setValue(node, text());
             return node;
         }
@@ -2808,10 +2813,10 @@ reg64 "Registro_64_Bits"
 crc32_inst
     =  _* "CRC32"i "C"i? "B"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CRC32B');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'CRC32B', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -2822,10 +2827,10 @@ crc32_inst
         }
     / _* "CRC32"i "C"i? "H"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CRC32H');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'CRC32H', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -2836,10 +2841,10 @@ crc32_inst
         }
     / _* "CRC32"i "C"i? "W"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg32 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CRC32W');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'CRC32W', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -2850,10 +2855,10 @@ crc32_inst
         }
     / _* "CRC32"i "C"i? "X"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:reg64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'CRC32X');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
-            const src2Node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('INSTRUCTION', 'CRC32X', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
+            const src2Node = createNode('SOURCE2', 'SRC2', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(src2Node, src2);
@@ -2869,9 +2874,9 @@ crc32_inst
 ld_inst
     = _* "LD"i _* rd:reg64 _* "," _* src1:reg64 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LD');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LD', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -2881,9 +2886,9 @@ ld_inst
         }
     / _* "LD"i _* rd:reg32 _* "," _* src1:reg32 _* "," _* src2:operand64 _* comment? "\n"?
         {
-            const node = createNode('INSTRUCTION', 'LD');
-            const rdNode = createNode('DESTINATION', 'RD');
-            const src1Node = createNode('SOURCE1', 'SRC1');
+            const node = createNode('INSTRUCTION', 'LD', location());
+            const rdNode = createNode('DESTINATION', 'RD', location());
+            const src1Node = createNode('SOURCE1', 'SRC1', location());
             addChild(rdNode, rd);
             addChild(src1Node, src1);
             addChild(node, rdNode);
@@ -2896,7 +2901,7 @@ ld_inst
 reg32 "Registro_32_Bits"
     = "w"i ("30" / [12][0-9] / [0-9])
         {
-            const node = createNode('RG_32_BITS', 'reg32');
+            const node = createNode('RG_32_BITS', 'reg32', location());
             setValue(node, text());
             return node;
         }
@@ -2905,7 +2910,7 @@ reg32 "Registro_32_Bits"
 operand64 "Operandor 64 Bits"
     = r:reg64 _* "," _* ep:extend_op                 // Registro con extensión de tamaño
         {
-            const node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('SOURCE2', 'SRC2', location());
             addChild(node, r);
             if(ep){
             addChild(node, ep);
@@ -2914,7 +2919,7 @@ operand64 "Operandor 64 Bits"
         }  
     / r:reg64 lp:(_* "," _* shift_op _* immediate)?  // Registro con desplazamiento lógico opcional
         {
-            const node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('SOURCE2', 'SRC2', location());
             addChild(node, r);
             if(lp){
                 addChild(node, lp[3]);
@@ -2924,7 +2929,7 @@ operand64 "Operandor 64 Bits"
         }   
     / i:immediate                                     // Valor inmediato
         {
-            const node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('SOURCE2', 'SRC2', location());
             addChild(node, i);
             return node;
         }                             
@@ -2933,7 +2938,7 @@ operand64 "Operandor 64 Bits"
 operand32 "Operandor 32 Bits"
     = r:reg32 lp:(_* "," _* shift_op _* immediate)?  // Registro con desplazamiento lógico
         {
-            const node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('SOURCE2', 'SRC2', location());
             addChild(node, r);
             if(lp){
                 addChild(node, lp[3]);
@@ -2943,7 +2948,7 @@ operand32 "Operandor 32 Bits"
         }
     / i:immediate                             // Valor inmediato
         {
-            const node = createNode('SOURCE2', 'SRC2');
+            const node = createNode('SOURCE2', 'SRC2', location());
             addChild(node, i);
             return node;
         }
@@ -2952,19 +2957,19 @@ operand32 "Operandor 32 Bits"
 shift_op "Operador de Desplazamiento"
     = "LSL"i
         {
-            const node = createNode('LOGICAL_SHIFT_LEFT', 'LSL');
+            const node = createNode('LOGICAL_SHIFT_LEFT', 'LSL', location());
             setValue(node, text());
             return node;
         } 
     / "LSR"i
         {
-            const node = createNode('LOGICAL_SHIFT_RIGHT', 'LSR');
+            const node = createNode('LOGICAL_SHIFT_RIGHT', 'LSR', location());
             setValue(node, text());
             return node;
         } 
     / "ASR"i
         {
-            const node = createNode('ARITHMETIC_SHIFT_RIGHT', 'ASR');
+            const node = createNode('ARITHMETIC_SHIFT_RIGHT', 'ASR', location());
             setValue(node, text());
             return node;
         }
@@ -2973,49 +2978,49 @@ shift_op "Operador de Desplazamiento"
 extend_op "Operador de Extensión"
     = "UXTB"i
         {
-            const node = createNode('UNSIGNED_EXTEND_BYTE', 'UXTB');
+            const node = createNode('UNSIGNED_EXTEND_BYTE', 'UXTB', location());
             setValue(node, text());
             return node;
         }
     / "UXTH"i 
         {
-            const node = createNode('UNSIGNED_EXTEND_HALFWORD', 'UXTH');
+            const node = createNode('UNSIGNED_EXTEND_HALFWORD', 'UXTH', location());
             setValue(node, text());
             return node;
         }
     / "UXTW"i 
         {
-            const node = createNode('UNSIGNED_EXTEND WORD', 'UXTW');
+            const node = createNode('UNSIGNED_EXTEND WORD', 'UXTW', location());
             setValue(node, text());
             return node;
         }
     / "UXTX"i
         {
-            const node = createNode('UNSIGNED_EXTEND_DOUBLEWORD', 'UXTX');
+            const node = createNode('UNSIGNED_EXTEND_DOUBLEWORD', 'UXTX', location());
             setValue(node, text());
             return node;
         }
     / "SXTB"i
         {
-            const node = createNode('SIGNED_EXTEND_BYTE', 'SXTB');
+            const node = createNode('SIGNED_EXTEND_BYTE', 'SXTB', location());
             setValue(node, text());
             return node;
         }
     / "SXTH"i
         {
-            const node = createNode('SIGNED_EXTEND_HALFWORD', 'SXTH');
+            const node = createNode('SIGNED_EXTEND_HALFWORD', 'SXTH', location());
             setValue(node, text());
             return node;
         }
     / "SXTW"i 
         {
-            const node = createNode('SIGNED_EXTEND_WORD', 'SXTW');
+            const node = createNode('SIGNED_EXTEND_WORD', 'SXTW', location());
             setValue(node, text());
             return node;
         }
     / "SXTX"i
         {
-            const node = createNode('SIGNED_EXTEND_DOUBLEWORD', 'SXTX');
+            const node = createNode('SIGNED_EXTEND_DOUBLEWORD', 'SXTX', location());
             setValue(node, text());
             return node;
         }
@@ -3024,31 +3029,31 @@ extend_op "Operador de Extensión"
 immediate "Inmediato"
     = "#"? "0b" binary_literal
         {
-            const node = createNode('INMEDIATE_OP', '#');
+            const node = createNode('INMEDIATE_OP', '#', location());
             setValue(node, text());
             return node;
         }
     / ("+"/"-")? integer
         {
-            const node = createNode('INMEDIATE_OP', 'Integer');
+            const node = createNode('INMEDIATE_OP', 'Integer', location());
             setValue(node, text());
             return node;
         }
     / "#"? "'"letter"'"
         {
-            const node = createNode('INMEDIATE_OP', '#');
+            const node = createNode('INMEDIATE_OP', '#', location());
             setValue(node, text());
             return node;
         }
     / "#"? "0x"? hex_literal
         {
-            const node = createNode('INMEDIATE_OP', '#');
+            const node = createNode('INMEDIATE_OP', '#', location());
             setValue(node, text());
             return node;
         }
     / "#" integer
         {
-            const node = createNode('INMEDIATE_OP', '#');
+            const node = createNode('INMEDIATE_OP', '#', location());
             setValue(node, text());
             return node;
         }
@@ -3063,7 +3068,7 @@ letter
 expression "Espresión"
     = integer
         {
-            const node = createNode('INTEGER', 'Integer');
+            const node = createNode('INTEGER', 'Integer', location());
             setValue(node, text());
             return node;
         }
@@ -3072,7 +3077,7 @@ expression "Espresión"
 label "Etiqueta"
     = [a-zA-Z_][a-zA-Z0-9_]*
         {
-            const node = createNode('LABEL', 'Label');
+            const node = createNode('LABEL', 'Label', location());
             setValue(node, text());
             return node;
         }
@@ -3085,7 +3090,7 @@ integer "Numero Entero"
 string "Cadena de Texto"
     = '"' ([^"]*) '"'
     {
-        const node = createNode('STRING', 'String');
+        const node = createNode('STRING', 'String', location());
         setValue(node, text().slice(1, -1));
         return node;
     }

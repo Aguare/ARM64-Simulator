@@ -250,6 +250,22 @@ const displayErrors = (errors) => {
     });
 };
 
+const displaySemanticErrors = (errors) => {
+    const errorTableBody = document.querySelector('#error-table tbody');
+    errorTableBody.innerHTML = ''; // Clear previous errors
+    errors.forEach((error, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${error.error}</td>
+            <td>${error.line}</td>
+            <td>${error.column}</td>
+            <td>${error.type}</td>
+        `;
+        errorTableBody.appendChild(row);
+    });
+}
+
 
 
 const analysis = async () => {
@@ -268,16 +284,16 @@ const analysis = async () => {
         const c3d = resultado.getC3d(resultado);
         console.log(c3d);
         // resultado.accept(c3d);
-        accept(c3d);
+        await accept(c3d);
         console.log('output', output);
         console.log('errors', errors);
         console.log('registers', registers);
         if(errors.length === 0) {
             consoleEditor.setValue(output)
         } else {
-            errors = errors.concat(errors);
-            consoleEditor.setValue(errors);
-            displayErrors(errors);
+            // errors = errors.concat(errors);
+            consoleEditor.setValue(errors.reduce((acc, error) => acc + error.error + ' Linea: ' + error.line + ' Columna: ' + error.column + '\n', ''));
+            displaySemanticErrors(errors);
         }
         const quarters = resultado.getQuarters(c3d);
         // console.log("QUARTERS:");

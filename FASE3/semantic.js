@@ -3,13 +3,21 @@ let variables = [];
 let bss = [];
 let registers = [];
 let currentIndex = 0;
+let currentFileContent = '';
+let currentFileName = '';
 let errors = [];
 let output = '';
 let svcExit = false;
+let currentLine = 0;
+let currentColumn = 0;
 
 // Funciones de inicialización
 function init(c3d) {
     currentIndex = 0;
+    currentFileContent = '';
+    currentFileName = '';
+    currentLine = 0;
+    currentColumn = 0;
     svcExit = false;
     errors = [];
     output = '';
@@ -139,13 +147,11 @@ function getValue(operador) {
         // Si es un binario con una expresión regular que comienza con 0b
         if(operador.startsWith("0b")) {
             let bin = parseInt(operador.substring(2), 2);
-            console.log('binario', bin)
             return parseInt(operador.substring(2), 2);
         }
 
         // Si es un número
         if(!isNaN(operador)) {
-            console.log('numero')
             return parseInt(operador, 10);
         }
 
@@ -230,11 +236,88 @@ function updateFlags(result) {
     V.value = 0;
 }
 
+// Función para abrir un archivo en el computador
+const openFileSemantic = async (filename) => {
+    let fileContentResult = '';
+    const { value: file } = await Swal.fire({
+        title: 'Select File',
+        input: 'file',
+        inputAttributes: {
+            'accept': 'text/*',
+            'aria-label': 'Upload your file'
+        },
+        showCancelButton: true
+    });
+    
+    if (!file) return;
+
+    return new Promise((resolve, reject) => {
+        let reader = new FileReader();
+
+        reader.onload = (e) => {
+            const fileContent = e.target.result;
+            console.log('fileContentResult', fileContent);
+            currentFileName = file.name;
+            currentFileContent = fileContent;
+            resolve({ filename: file.name, fileContent });
+        };
+
+        reader.onerror = (e) => {
+            console.log("Error reading file", e.target.error);
+            errors.push({error: `Error al leer el archivo: ${file.name}`, type: 'semántico', line: currentLine, column: currentColumn});
+            reject(e.target.error);
+        };
+
+        reader.readAsText(file);
+    });
+};
+
+// Función para escribir un archivo en el computador
+const saveFileSemantic = async (data) => {
+    if(!currentFileName || currentFileName === '') {
+        errors.push({error: `No se ha abierto un archivo`, type: 'semántico', line: currentLine, column: currentColumn});
+    };
+    let filename = currentFileName.split('.')[0];
+    const extension = currentFileName.split('.')[1];
+    if (filename === '') {
+        const { value: name } = await Swal.fire({
+            title: 'Enter File name',
+            input: 'text',
+            inputLabel: 'File name',
+            showCancelButton: true,
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'You need to write something!'
+                }
+            }
+        })
+        filename = name;
+    }
+    if (filename) {
+        download(`${filename}.${extension}`, data)
+    }
+}
+
+// Función para cerrar un archivo en el computador
+function closeFileSemantic(filename) {
+    currentFileName = '';
+    currentFileContent = '';
+}
+
+function readFile(variable) {
+    variable.value = currentFileContent;
+    console.log('readFile', variable, currentFileContent)
+}
+
 // Función para ejecutar el código c3d
-function accept(c3d) {
+async function accept(c3d) {
     init(c3d);
-    while(currentIndex < c3d.length && !svcExit) {
-        executeLine(c3d);
+    try {
+        while(currentIndex < c3d.length && !svcExit) {
+            await executeLine(c3d);
+        }
+    } catch (error) {
+        console.log('error', error);
     }
 }
 
@@ -245,12 +328,14 @@ function debug(c3d) {
 }
 
 // Función para ejecutar línea por línea el código c3d
-function executeLine(c3d) {
+async function executeLine(c3d) {
     let line = c3d[currentIndex];
+    currentLine = line.line;
+    currentColumn = line.column;
     if(line.resultado === '.global') {
         executeGlobal(line);
     } else if (line.operacion !== '') {
-        executeInstruction(line);
+        await executeInstruction(line);
     }
     currentIndex++;
 }
@@ -260,20 +345,21 @@ function executeLine(c3d) {
 function executeGlobal(line) {
     let label = labels.find(l => l.label === line.operador1);
     if(!label) {
-        errors.push({error: `No se encontró el label: ${line.operador1} de inicio de ejecución`, type: 'semántico', row: line.row, column: line.column});
+        errors.push({error: `No se encontró el label: ${line.operador1} de inicio de ejecución`, type: 'semántico', line: currentLine, column: currentColumn});
+        // svcExit = true;
     }
         
 }
 
 // Función para ejecutar una instrucción
 // Este método llama a otras funciones en base a la operación
-function executeInstruction(line) {
+async function executeInstruction(line) {
     switch(line.operacion) {
         case 'MOV':
             mov(line.resultado, line.operador1);
             break;
         case 'SVC':
-            svc(line.resultado);
+            await svc(line.resultado);
             break;
         case 'LDR':
             ldr(line.resultado, line.operador1);
@@ -362,24 +448,58 @@ function executeInstruction(line) {
         case 'BGE':
             bge(line.resultado);
             break;
+            case '.align':
+            case '.ascii':
+            case '.asciz':
+            case '.string':
+            case '.byte':
+            case '.half':
+            case '.word':
+            case '.dword':
+            case '.hword':
+            case '.quad':
+            case '.skip':
+            case '.data':
+            case '.text':
+            case '.bss':
+            case '.section':
+            case '.global':
+            case '.equ':
+            case '.extern':
+            case '.file':
+            case '.type':
+            case '.size':
+            case '.ident':
+            case '.p2align':
+            case '.zero':
+            case '.space':
+            case '.set':
+            case '.incbin':
+                break;
         default:
+            errors.push({error: `No se encontró la operación: ${line.operacion}`, type: 'semántico', line: currentLine, column: currentColumn});
             break;
     }
 }
 
 function mov(register, value) {
-    console.log('mov', register, value);
     updateOutConsole('asignar', register,'=', value)
     let reg = registers.find(r => r.register === register);
     value = getValue(value);
     if(value === null) {
-        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', row: 0, column: 0});
+        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', line: currentLine, column: currentColumn});
         return;
     }
 
     if(reg) {
         if(value.register && value.register.includes('x')) value = value.value;
         if(value.register && value.register.includes('w')) value = value.value;
+
+        if(isNaN(value)) {
+            errors.push({error: `El valor asignado no es un número: ${value}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return;
+        }
+
         reg.value = value;
     }
 }
@@ -387,11 +507,11 @@ function mov(register, value) {
 // Función para ejecutar la instrucción SVC
 // Esta instrucción verifica si el registro x8 tiene un valor 93 para finalizar la ejecución
 // Si el registro x8 tiene un valor de 64 entonces imprime el valor del registro x0
-function svc(value) {
+async function svc(value) {
     let x8 = registers.find(r => r.register === 'x8');
     value = getValue(value);
     if(value === null) {
-        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', row: 0, column: 0});
+        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', line: currentLine, column: currentColumn});
         return;
     }
     let x0 = registers.find(r => r.register === 'x0');
@@ -400,6 +520,10 @@ function svc(value) {
     // Si el valor de x8 es 63 entonces se lee un valor
     if(x8 && x8.value === 64 && x0 && x0.value === 1) {
         let x1 = registers.find(r => r.register === 'x1');
+        if(x1.value === undefined) {
+            errors.push({error: `No se encontró el valor de x1`, type: 'semántico', line: currentLine, column: currentColumn});
+            return;
+        }
         let x1Value = getValue(x1.value);
         output += x1Value.value + '\n';
         updateOutConsole('imprimir', x8.value,'=', 'x8')
@@ -409,29 +533,74 @@ function svc(value) {
         output += 'Finalizando ejecución';
         svcExit = true;
         updateOutConsole('finalizar', x8.value,'=', 'x8')
-    } else if(x8 && x8.value === 63) {
+    } else if(x8 && x8.value === 63 && x0 && x0.value === 0) {
         let x1 = registers.find(r => r.register === 'x1');
+        if (x1 === undefined) {
+            errors.push({error: `No se encontró el valor de x1`, type: 'semántico', line: currentLine, column: currentColumn});
+            return;
+        }
         let x1Value = getValue(x1.value);
         let input = prompt('Ingrese un valor');
         x1Value.value = input;
         updateOutConsole('leer', x8.value,'=', 'x8')
-    }
+    } else if (x8 && x8.value === 56 && x0 && x0.value === -100) {
+        let x2 = registers.find(r => r.register === 'x2');
+        let x3 = registers.find(r => r.register === 'x3');
+        // if ((x2 && x2.value !== 101 && x3 && x3.value !== 777) || (x2 && x2.value !== 0)) {
+        //     errors.push({error: `No se poseen los permisos requeridos para abrir el archivo.`, type: 'semántico', line: 0, column: 0});
+        //     return;
+        // }
+        let x1 = registers.find(r => r.register === 'x1');
+        if (x1 === undefined) {
+            errors.push({error: `No se encontró el valor de x1`, type: 'semántico', line: currentLine, column: currentColumn});
+            return;
+        }
+        let x1Value = getValue(x1.value);
+        if (x2 && x2.value === 0) {
+            const { filename, fileContent } = await openFileSemantic(x1Value.value);
+            currentFileContent = fileContent;
+            currentFileName = filename;
+        } else {
+            currentFileContent = '';
+            currentFileName = x1Value.value;
+        }
+        updateOutConsole('leer', x8.value,'=', 'x8');
+    
+    } else if(x8 && x8.value === 63 && x0 && x0.value === -100) {
+        let x1 = registers.find(r => r.register === 'x1');
+        if (x1 === undefined) {
+            errors.push({error: `No se encontró el valor de x1`, type: 'semántico', line: currentLine, column: currentColumn});
+            return;
+        }
+        let x1Value = getValue(x1.value);
+        readFile(x1Value);
+        updateOutConsole('leer', x8.value,'=', 'x8')
+    } else if(x8 && x8.value === 64 && x0 && x0.value === -100) { // valor 64 para escribir un archivo
+        let x1 = registers.find(r => r.register === 'x1');
+        if (x1 === undefined) {
+            errors.push({error: `No se encontró el valor de x1`, type: 'semántico', line: currentLine, column: currentColumn});
+            return;
+        }
+        let x1Value = getValue(x1.value);
+        await saveFileSemantic(x1Value.value);
+        updateOutConsole('escribir', x8.value,'=', 'x8')
+    } 
 }
 
 // Función para imprimir u obtener algo (input / output) ldr
 function ldr(register, value) {
     let reg = registers.find(r => r.register === register);
-    value = getValue(value);
+    let valueResult = getValue(value);
     
-    if(value === null) {
-        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', row: 0, column: 0});
+    if(valueResult === null || valueResult === undefined) {
+        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', line: currentLine, column: currentColumn});
         return;
     }
 
     if(reg) {
         // Almacenamos el nombre de la variable en el registro (por lo general x1)
-        reg.value = value.variable;
-        updateOutConsole('imprimir', register,'=',value.variable )
+        reg.value = valueResult.variable;
+        updateOutConsole('imprimir', register,'=',valueResult.variable )
     }
 
 }
@@ -439,16 +608,16 @@ function ldr(register, value) {
 // Función para cargar valores a registros ldrb
 function ldrb(register, value) {
     let reg = registers.find(r => r.register === register);
-    value = getValue(value);
-    if(value === null) {
-        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', row: 0, column: 0});
+    let valueResult = getValue(value);
+    if(valueResult === null || valueResult === undefined) {
+        errors.push({error: `No se encontró el valor: ${value}`, type: 'semántico', line: currentLine, column: currentColumn});
         return;
     }
 
     if(reg) {
         // Almacenamos el nombre de la variable en el registro (por lo general x1)
-        let variable = getValue(value.value);
-        reg.value = variable.value.charAt(value.offset);
+        let variable = getValue(valueResult.value);
+        reg.value = variable.value.charAt(valueResult.offset);
         updateOutConsole('leer', register,'=', reg.value )
     }
 
@@ -461,13 +630,29 @@ function add(register, op1, op2) {
     let value1 = getValue(op1);
     let value2 = getValue(op2);
     updateOutputConsoleOP(register,op1,'+',op2)
+    if(isNaN(value1.value)) {
+        errors.push({error: `El valor asignado no es un número: ${value1.value}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
-        reg.offset = value1.offset + value2;
+
+        if(isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return;
+        }
+
+        reg.value = value1.value + value2;
         //updateOutputConsoleOP(register,op1,'+',op2)
-        updateOutConsole('SUMA',register,'=', reg.offset )
+        updateOutConsole('SUMA',register,'=', reg.value )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
+
+        if(isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return;
+        }
+
         reg.value = parseInt(value1.value, 10) + parseInt(value2, 10);
         //updateOutputConsoleOP(register,op1,'+',op2)
         updateOutConsole('SUMA',register,'=', reg.value )
@@ -480,12 +665,25 @@ function sub(register, op1, op2) {
     let value1 = getValue(op1);
     let value2 = getValue(op2);
     updateOutputConsoleOP(register,op1,'-',op2)
+    if (isNaN(value1.value)) {
+        errors.push({error: `El valor asignado no es un número: ${value1.value}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
+
+        if(isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return;
+        }
         reg.value = parseInt(value1.value, 10) - parseInt(value2, 10);
         updateOutConsole('RESTA',register,'=', reg.value )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
+        if(isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return
+        }
         reg.value = numberToChar(value1.value) - value2;
         console.log('reg.value', reg);
         updateOutConsole('RESTA',register,'=', reg.value )
@@ -497,13 +695,26 @@ function mul(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    if (isNaN(value1.value)) {
+        errors.push({error: `El valor asignado no es un número: ${value1.value}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
+
     updateOutputConsoleOP(register,op1,'*',op2)
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
+        if (isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return
+        }
         reg.value = parseInt(value1.value, 10) * parseInt(value2, 10);
         updateOutConsole('MUL',register,'=', reg.value )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
+        if (isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return
+        }
         reg.value = numberToChar(value1.value) * numberToChar(value2);
         updateOutConsole('MUL',register,'=', reg.value )
     }
@@ -514,13 +725,25 @@ function sdiv(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    if (isNaN(value1.value)) {
+        errors.push({error: `El valor asignado no es un número: ${value1.value}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
     updateOutputConsoleOP(register,op1,'/',op2)
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
+        if (isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return
+        }
         reg.value = parseInt(value1.value, 10) / parseInt(value2, 10);
         updateOutConsole('SDIV',register,'=', reg.value )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
+        if (isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return
+        }
         reg.value = numberToChar(value1.value) / numberToChar(value2);
         updateOutConsole('SDIV',register,'=', reg.value )
     }
@@ -531,13 +754,25 @@ function udiv(register, op1, op2) {
     let reg = registers.find(r => r.register === register);
     let value1 = getValue(op1);
     let value2 = getValue(op2);
+    if (isNaN(value1.value)) {
+        errors.push({error: `El valor asignado no es un número: ${value1.value}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
     updateOutputConsoleOP(register,op1,'/',op2)
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
+        if (isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return
+        }
         reg.value = parseInt(value1.value, 10) / parseInt(value2, 10);
         updateOutConsole('UDiV',register,'=', reg.value )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
+        if (isNaN(value2)) {
+            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+            return
+        }
         reg.value = numberToChar(value1.value) / numberToChar(value2);
         updateOutConsole('UDIV',register,'=', reg.value )
     }
@@ -663,27 +898,41 @@ function cmp(register, value) {
 // Función b
 function b(label) {
     let l = labels.find(l => l.label === label);
-    updateOutConsole('FuncionB',label,'=', l )
-    if(l) {
-        currentIndex = l.index;
+    // Verificar si el label existe
+    if(!l) {
+        errors.push({error: `No se encontró el label: ${label}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
     }
+    updateOutConsole('FuncionB',label,'=', l )
+    currentIndex = l.index;
 }
 
 // Función bl
 function bl(label) {
     let l = labels.find(l => l.label === label);
-    if(l) {
-        let lr = registers.find(r => r.register === 'lr');
-        lr.value = currentIndex;
-        currentIndex = l.index;
-        updateOutConsole('FuncionBL',label,'=', lr.value )
+
+    // Verificar si el label existe
+    if(!l) {
+        errors.push({error: `No se encontró el label: ${label}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
     }
+
+    let lr = registers.find(r => r.register === 'lr');
+    lr.value = currentIndex;
+    currentIndex = l.index;
+    updateOutConsole('FuncionBL',label,'=', lr.value )
 }
 
 // Función beq
 function beq(label) {
     let l = labels.find(l => l.label === label);
     let z = registers.find(r => r.register === 'Z');
+
+    if(!l) {
+        errors.push({error: `No se encontró el label: ${label}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
+
     if(l && z && z.value === 1) {
         currentIndex = l.index;
         updateOutConsole('FuncionBEQ',label,'_', currentIndex)
@@ -694,6 +943,12 @@ function beq(label) {
 function bne(label) {
     let l = labels.find(l => l.label === label);
     let z = registers.find(r => r.register === 'Z');
+
+    if(!l) {
+        errors.push({error: `No se encontró el label: ${label}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
+
     if(l && z && z.value === 0) {
         currentIndex = l.index;
         updateOutConsole('FuncionBNE',label,'_',currentIndex )
@@ -705,6 +960,12 @@ function blt(label) {
     let l = labels.find(l => l.label === label);
     let n = registers.find(r => r.register === 'N');
     let v = registers.find(r => r.register === 'V');
+
+    if(!l) {
+        errors.push({error: `No se encontró el label: ${label}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
+
     if(l && n && n.value !== v.value) {
         currentIndex = l.index;
         updateOutConsole('FuncionBLT',label,'_',currentIndex )
@@ -717,6 +978,12 @@ function ble(label) {
     let n = registers.find(r => r.register === 'N');
     let v = registers.find(r => r.register === 'V');
     let z = registers.find(r => r.register === 'Z');
+
+    if(!l) {
+        errors.push({error: `No se encontró el label: ${label}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
+
     if(l && (z.value === 1 || n.value !== v.value)) {
         currentIndex = l.index;
         updateOutConsole('FuncionBLE',label,'_',currentIndex )
@@ -729,6 +996,12 @@ function bgt(label) {
     let n = registers.find(r => r.register === 'N');
     let v = registers.find(r => r.register === 'V');
     let z = registers.find(r => r.register === 'Z');
+
+    if(!l) {
+        errors.push({error: `No se encontró el label: ${label}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
+
     if(l && (z.value === 0 && n.value === v.value)) {
         currentIndex = l.index;
         updateOutConsole('FuncionBGT',label,'_',currentIndex )
@@ -741,6 +1014,12 @@ function bge(label) {
     let l = labels.find(l => l.label === label);
     let n = registers.find(r => r.register === 'N');
     let v = registers.find(r => r.register === 'V');
+
+    if(!l) {
+        errors.push({error: `No se encontró el label: ${label}`, type: 'semántico', line: currentLine, column: currentColumn});
+        return;
+    }
+
     if(l && n.value === v.value) {
         currentIndex = l.index;
         updateOutConsole('FuncionBGE',label,'_',currentIndex )
