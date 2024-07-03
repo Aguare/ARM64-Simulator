@@ -495,10 +495,10 @@ function mov(register, value) {
         if(value.register && value.register.includes('x')) value = value.value;
         if(value.register && value.register.includes('w')) value = value.value;
 
-        if(isNaN(value)) {
-            errors.push({error: `El valor asignado no es un número: ${value}`, type: 'semántico', line: currentLine, column: currentColumn});
-            return;
-        }
+        // if(isNaN(valueResult)) {
+        //     errors.push({error: `El valor asignado no es un número: ${value}`, type: 'semántico', line: currentLine, column: currentColumn});
+        //     return;
+        // }
 
         reg.value = value;
     }
@@ -540,8 +540,13 @@ async function svc(value) {
             return;
         }
         let x1Value = getValue(x1.value);
-        let input = prompt('Ingrese un valor');
-        x1Value.value = input;
+        let input = await Swal.fire({
+            title: 'Ingrese un valor',
+            input: 'text',
+            inputLabel: 'Input value',
+            inputPlaceholder: 'Enter your value here'
+        });
+        x1Value.value = input.value;
         updateOutConsole('leer', x8.value,'=', 'x8')
     } else if (x8 && x8.value === 56 && x0 && x0.value === -100) {
         let x2 = registers.find(r => r.register === 'x2');
@@ -630,21 +635,21 @@ function add(register, op1, op2) {
     let value1 = getValue(op1);
     let value2 = getValue(op2);
     updateOutputConsoleOP(register,op1,'+',op2)
-    if(isNaN(value1.value)) {
-        errors.push({error: `El valor asignado no es un número: ${value1.value}`, type: 'semántico', line: currentLine, column: currentColumn});
-        return;
-    }
+    // if(isNaN(value1.value)) {
+    //     errors.push({error: `El valor asignado no es un número: ${value1.value}`, type: 'semántico', line: currentLine, column: currentColumn});
+    //     return;
+    // }
     if(reg.register.includes('x')) {
         if (value2.register && value2.register.includes('x')) value2 = value2.value;
 
-        if(isNaN(value2)) {
-            errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
-            return;
-        }
+        // if(isNaN(value2)) {
+        //     errors.push({error: `El valor asignado no es un número: ${value2}`, type: 'semántico', line: currentLine, column: currentColumn});
+        //     return;
+        // }
 
-        reg.value = value1.value + value2;
+        reg.offset = value1.offset + value2;
         //updateOutputConsoleOP(register,op1,'+',op2)
-        updateOutConsole('SUMA',register,'=', reg.value )
+        updateOutConsole('SUMA',register,'=', reg.offset )
     } else {
         if (value2.register && value2.register.includes('w')) value2 = value2.value;
 

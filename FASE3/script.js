@@ -203,9 +203,13 @@ const cleanEditors = (...editors) => {
     const quartersTableContainer = document.getElementById('quartersTableContainer');
     const c3dTableTitle = document.getElementById('c3dTableTitle');
     const quartersTableTitle = document.getElementById('quartersTableTitle');
+    const outputConsole = document.getElementById('output-console');
+    const registerTableContainer = document.getElementById('registerTableContainer');
 
     c3dTableContainer.innerHTML = '';
     quartersTableContainer.innerHTML = '';
+    outputConsole.value = '';
+    registerTableContainer.innerHTML = '';
     c3dTableTitle.classList.add('hidden');
     quartersTableTitle.classList.add('hidden');
 };

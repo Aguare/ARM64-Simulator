@@ -49,6 +49,10 @@
 
     document.getElementById('btn__nextLine').addEventListener('click', () => {
         //clearOutputConsole();
+        if(currentIndex >= c3dGlobal.length){
+            return;
+        }
+        
         if (c3dGlobal) {
             try {
                 executeLine(c3dGlobal);
@@ -56,6 +60,8 @@
                 updateDebugConsole('Executed line: ' + JSON.stringify(line, null, 2));
                 //updateOutputConsole('Output: ' + output);
                 //updateOutConsole();
+                // editor.setValue(output);
+                updateDebugConsole(output);
             } catch (error) {
                 console.error('Error during execution:', error);
                 updateDebugConsole('Error during execution: ' + error.message);
